@@ -1,18 +1,20 @@
 // backend/server.js
+// Load env from project root even when running inside /backend
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
 // --- SUPABASE BAĞLANTISI ---
 const supabase = createClient(
-  "SUPABASE_URL", // Supabase URL
-  "SUPABASE_ANON_KEY"                    // Supabase Anon Key
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 // --- TEST ENDPOINT ---
