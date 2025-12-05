@@ -1,6 +1,6 @@
 # Node
 node_modules/
-npm-debug.log
+npm-debug.log*
 dist/
 build/
 
@@ -11,3 +11,8 @@ frontend/.env
 
 # Supabase keys
 supabase/.temp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

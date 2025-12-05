@@ -7,6 +7,9 @@ const cors = require('cors');
 const pool = require('./config/db'); // Veritabanı bağlantısı
 const zonesRoutes = require('./routes/zonesRoutes');
 const hotspotsRoutes = require('./routes/hotspotsRoutes');
+const { startSimulation } = require('./services/radarSimulation')
+const boatsRoutes = require('./routes/boatsRoutes');
+
 
 // Middleware'ler (Ara Yazılımlar)
 const requestLogger = require('./middleware/requestLogger');
@@ -33,6 +36,10 @@ app.use(requestLogger);
 // Trafik polisi gibi: "zones ile ilgili istek gelirse zonesRoutes'a git"
 app.use('/api/zones', zonesRoutes);
 app.use('/api/hotspots', hotspotsRoutes);
+app.use('/api/zones', zonesRoutes);
+app.use('/api/hotspots', hotspotsRoutes);
+app.use('/api/boats', boatsRoutes);   // 🔹 BUNU EKLE
+
 
 // Sağlık Kontrolü (Health Check) - Tarayıcıdan http://localhost:3000 yazınca bu çıkar
 app.get('/', (req, res) => {
@@ -49,11 +56,18 @@ app.use(errorHandler);
 app.listen(PORT, async () => {
   console.log(`🚀 Sunucu ${PORT} portunda çalışıyor: http://localhost:${PORT}`);
 
-  // Başlarken veritabanı bağlantısını test et (Hocanın gözüne girmek için ekstra detay)
   try {
     const res = await pool.query('SELECT NOW()');
     console.log(`✅ Veritabanı Bağlantısı Başarılı! (Sunucu Saati: ${res.rows[0].now})`);
   } catch (err) {
     console.error('❌ Veritabanı Bağlantı Hatası:', err.message);
+  }
+
+  // 🔽 Simülasyonu burada başlat
+  try {
+    await startSimulation();
+    console.log("🎛️ Radar simülasyonu devrede.");
+  } catch (err) {
+    console.error("Simülasyon başlatılamadı:", err.message);
   }
 });

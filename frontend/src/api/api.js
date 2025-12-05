@@ -13,3 +13,9 @@ export const fetchHotspots = async () => {
   if (!response.ok) throw new Error('Hotspots çekilemedi');
   return response.json();
 };
+
+export const fetchActiveBoats = async () => {
+  const response = await fetch(`${BASE_URL}/boats/active`);
+  if (!response.ok) throw new Error('Aktif tekneler çekilemedi');
+  return response.json();
+};

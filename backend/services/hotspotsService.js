@@ -1,42 +1,90 @@
-const pool = require('../config/db');
+// backend/services/hotspotsService.js
+
+const pool = require("../config/db");
+
 
 exports.getHotspots = async () => {
-  const query = `SELECT * FROM fish_hotspots ORDER BY created_at DESC`;
+  const query = `
+    SELECT
+      h.hotspot_id,
+      h.species_id,
+      s.common_name AS species_name,
+      h.intensity,
+      h.last_seen,
+      h.depth,
+      ST_AsGeoJSON(h.geom) AS geometry
+    FROM fish_hotspots h
+    JOIN fish_species s ON s.species_id = h.species_id
+    ORDER BY h.last_seen DESC;
+  `;
+
   const { rows } = await pool.query(query);
-  return rows;
+
+  const features = rows.map((row) => ({
+    type: "Feature",
+    properties: {
+      id: row.hotspot_id,
+      species_id: row.species_id,
+      species_name: row.species_name,
+      intensity: row.intensity,
+      last_seen: row.last_seen,
+      depth: row.depth
+    },
+    geometry: JSON.parse(row.geometry)
+  }));
+
+  return {
+    type: "FeatureCollection",
+    features
+  };
 };
 
-exports.createHotspot = async (data) => {
-  const { name, fish_type, lat, lng, depth } = data;
-  
-  // SQL Injection koruması için $1, $2 parametrelerini kullanıyoruz
+
+// 🔹 YENİ HOTSPOT EKLE (POINT)
+exports.createHotspot = async ({ species_id, intensity, depth, lat, lng }) => {
   const query = `
-    INSERT INTO fish_hotspots (name, fish_type, lat, lng, depth)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *
+    INSERT INTO fish_hotspots (species_id, intensity, depth, geom)
+    VALUES ($1, $2, $3, ST_SetSRID(ST_Point($4, $5), 4326))
+    RETURNING hotspot_id, species_id, intensity, depth, last_seen,
+              ST_AsGeoJSON(geom) AS geometry;
   `;
-  
-  const values = [name, fish_type, lat, lng, depth];
+
+  const values = [species_id, intensity, depth, lng, lat]; // DİKKAT: lng, lat sırası
+
+  const { rows } = await pool.query(query, values);
+
+  return rows[0];
+};
+
+// 🔹 HOTSPOT GÜNCELLE
+exports.updateHotspot = async (id, { species_id, intensity, depth, lat, lng }) => {
+  const query = `
+    UPDATE fish_hotspots
+    SET 
+      species_id = $1,
+      intensity = $2,
+      depth = $3, 
+      geom = ST_SetSRID(ST_Point($4, $5), 4326),
+      last_seen = NOW()
+    WHERE hotspot_id = $6
+    RETURNING hotspot_id, species_id, intensity, depth, last_seen,
+              ST_AsGeoJSON(geom) AS geometry;
+  `;
+
+  const values = [species_id, intensity, depth, lng, lat, id];
+
   const { rows } = await pool.query(query, values);
   return rows[0];
 };
-/*
+
+// 🔹 HOTSPOT SİL
 exports.deleteHotspot = async (id) => {
-  const query = `DELETE FROM fish_hotspots WHERE id = $1 RETURNING *`;
+  const query = `
+    DELETE FROM fish_hotspots
+    WHERE hotspot_id = $1
+    RETURNING hotspot_id;
+  `;
+
   const { rows } = await pool.query(query, [id]);
   return rows[0];
 };
-
-exports.updateHotspot = async (id, data) => {
-  const { name, fish_type, lat, lng, depth } = data;
-  const query = `
-    UPDATE fish_hotspots
-    SET name = $1, fish_type = $2, lat = $3, lng = $4, depth = $5, updated_at = NOW()
-    WHERE id = $6
-    RETURNING *
-  `;
-  const values = [name, fish_type, lat, lng, depth, id];
-  const { rows } = await pool.query
-(query, values);
-  return rows[0];
-};    */
