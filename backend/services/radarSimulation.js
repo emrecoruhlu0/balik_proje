@@ -95,13 +95,15 @@ async function startSimulation() {
             AND EXISTS (
               SELECT 1
               FROM lake_zones l
-              WHERE ST_Contains(
-                l.geom,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)
-              )
+              WHERE l.name ILIKE '%Van Gölü%'  -- sadece göl polygonu
+                AND ST_Contains(
+                  l.geom,
+                  ST_SetSRID(ST_MakePoint($1, $2), 4326)
+                )
             )
           RETURNING ST_X(current_geom) AS lon, ST_Y(current_geom) AS lat;
         `, [newLon, newLat, boat_id]);
+
 
         // Eğer göl dışına çıkmaya çalıştıysa, hareketi iptal et
         if (updateRes.rowCount === 0) {
@@ -131,12 +133,14 @@ async function startSimulation() {
             WHERE EXISTS (
               SELECT 1
               FROM lake_zones l
-              WHERE ST_Contains(
-                l.geom,
-                ST_SetSRID(ST_MakePoint($2, $3), 4326)
-              )
+              WHERE l.name ILIKE '%Van Gölü%'  -- sadece göl polygonu
+                AND ST_Contains(
+                  l.geom,
+                  ST_SetSRID(ST_MakePoint($2, $3), 4326)
+                )
             )
           `, [rental_id, fishLon, fishLat, signalStrength]);
+
 
           console.log(`📡 Sinyal: ${name} balık buldu! (Güç: ${signalStrength})`);
         }

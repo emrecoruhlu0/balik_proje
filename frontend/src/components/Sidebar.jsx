@@ -1,5 +1,10 @@
 // frontend/src/components/Sidebar.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  fetchAvailableBoats,
+  createBoatRental,
+  completeBoatRental,
+} from '../api/api';
 
 const TABS = {
   INFO: 'info',
@@ -11,6 +16,71 @@ const TABS = {
 
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState(TABS.INFO);
+
+  // 🔹 Tekne sekmesi için ek state'ler
+  const [availableBoats, setAvailableBoats] = useState([]);
+  const [boatsLoading, setBoatsLoading] = useState(false);
+  const [boatsError, setBoatsError] = useState(null);
+  const [activeRental, setActiveRental] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
+
+  // BOAT tab aktif olduğunda müsait tekneleri yükle
+  useEffect(() => {
+    if (activeTab !== TABS.BOAT) return;
+
+    const loadBoats = async () => {
+      setBoatsLoading(true);
+      setBoatsError(null);
+      try {
+        const data = await fetchAvailableBoats();
+        setAvailableBoats(data);
+      } catch (err) {
+        console.error(err);
+        setBoatsError('Tekneler yüklenirken bir hata oluştu.');
+      } finally {
+        setBoatsLoading(false);
+      }
+    };
+
+    loadBoats();
+  }, [activeTab]);
+
+  const handleRentBoat = async (boatId) => {
+    try {
+      setActionMessage('');
+      const rental = await createBoatRental(boatId, 60); // 60 dakika demo
+      setActiveRental(rental);
+      setActionMessage(
+        `Tekneniz göle açıldı! (Kiralama ID: ${rental.rental_id})`
+      );
+
+      // Müsait tekne listesini güncelle
+      const data = await fetchAvailableBoats();
+      setAvailableBoats(data);
+    } catch (err) {
+      console.error(err);
+      setActionMessage(err.message || 'Tekne kiralanırken bir hata oluştu.');
+    }
+  };
+
+  const handleCompleteRental = async () => {
+    if (!activeRental) return;
+
+    try {
+      setActionMessage('');
+      await completeBoatRental(activeRental.rental_id);
+      setActionMessage('Kiralama tamamlandı, tekne iskeleye döndü.');
+      setActiveRental(null);
+
+      const data = await fetchAvailableBoats();
+      setAvailableBoats(data);
+    } catch (err) {
+      console.error(err);
+      setActionMessage(
+        err.message || 'Kiralama tamamlanırken bir hata oluştu.'
+      );
+    }
+  };
 
   const renderInfoTab = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -63,31 +133,133 @@ const Sidebar = () => {
     </div>
   );
 
-  // Diğer sekmeler (Tekne, Ekipman, Forum, Giriş) bir önce gönderdiğimle aynı kalabilir
-  // sadece zoneDetails ile ilgili her şeyi kaldırdık.
-
   const renderBoatTab = () => (
-    <div style={{ marginTop: '10px' }}>
+    <div
+      style={{
+        marginTop: '10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}
+    >
       <h3 style={{ color: '#00ffff', marginTop: 0 }}>🛶 Tekne Kiralama</h3>
       <p style={{ fontSize: '0.9rem', color: '#ccc' }}>
-        Tekne kiralayabilmek için giriş yapmanız gerekiyor.
+        Demo modunda, giriş yapmadan tekne kiralayabilirsiniz. Kiralama
+        başlattığınızda tekne göle açılır ve radar balıkları göstermeye başlar.
       </p>
-      <button
-        style={{
-          marginTop: '10px',
-          width: '100%',
-          padding: '10px',
-          borderRadius: '6px',
-          border: 'none',
-          cursor: 'pointer',
-          background: '#00ffff',
-          color: '#00111f',
-          fontWeight: 'bold',
-        }}
-        onClick={() => setActiveTab(TABS.ACCOUNT)}
-      >
-        Giriş Yap / Kayıt Ol
-      </button>
+
+      {boatsLoading && (
+        <p style={{ fontSize: '0.85rem', color: '#888' }}>Tekneler yükleniyor…</p>
+      )}
+
+      {boatsError && (
+        <p style={{ fontSize: '0.85rem', color: '#f97373' }}>{boatsError}</p>
+      )}
+
+      {!boatsLoading && !boatsError && availableBoats.length === 0 && (
+        <p style={{ fontSize: '0.85rem', color: '#ccc' }}>
+          Şu an tüm tekneler gölde. Müsait tekne yok gibi görünüyor.
+        </p>
+      )}
+
+      {!boatsLoading && !boatsError && availableBoats.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          {availableBoats.map((boat) => (
+            <div
+              key={boat.boat_id}
+              style={{
+                background: 'rgba(0, 255, 255, 0.05)',
+                border: '1px solid #00ffff33',
+                borderRadius: 6,
+                padding: 10,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div>
+                <strong>{boat.name}</strong>
+                <br />
+                Kapasite: {boat.capacity} kişi
+                <br />
+                Saatlik: {boat.price_per_hour} ₺
+              </div>
+              <button
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: '#00ffff',
+                  color: '#00111f',
+                  fontWeight: 'bold',
+                  fontSize: '0.8rem',
+                }}
+                disabled={!!activeRental}
+                onClick={() => handleRentBoat(boat.boat_id)}
+              >
+                Kirala (60 dk)
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeRental && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: 10,
+            borderRadius: 6,
+            border: '1px solid #22c55e55',
+            background: 'rgba(34, 197, 94, 0.08)',
+            fontSize: '0.85rem',
+          }}
+        >
+          <strong>Aktif Kiralamanız:</strong>
+          <br />
+          Kiralama ID: {activeRental.rental_id}
+          <br />
+          Başlangıç: {new Date(activeRental.start_at).toLocaleString('tr-TR')}
+          <br />
+          <button
+            style={{
+              marginTop: 8,
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              background: '#22c55e',
+              color: '#00111f',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+            }}
+            onClick={handleCompleteRental}
+          >
+            Kiralamayı Bitir (İskeleye Dön)
+          </button>
+        </div>
+      )}
+
+      {actionMessage && (
+        <p
+          style={{
+            fontSize: '0.8rem',
+            color: '#a5b4fc',
+            marginTop: 4,
+          }}
+        >
+          {actionMessage}
+        </p>
+      )}
     </div>
   );
 
@@ -100,22 +272,6 @@ const Sidebar = () => {
       <p style={{ fontSize: '0.85rem', color: '#888' }}>
         (Bu alanı backend hazır olduğunda gerçek verilerle dolduracağız.)
       </p>
-      <button
-        style={{
-          marginTop: '10px',
-          width: '100%',
-          padding: '10px',
-          borderRadius: '6px',
-          border: 'none',
-          cursor: 'pointer',
-          background: '#00ffff',
-          color: '#00111f',
-          fontWeight: 'bold',
-        }}
-        onClick={() => setActiveTab(TABS.ACCOUNT)}
-      >
-        Giriş Yap / Kayıt Ol
-      </button>
     </div>
   );
 

@@ -8,7 +8,10 @@ const pool = require('./config/db'); // Veritabanı bağlantısı
 const zonesRoutes = require('./routes/zonesRoutes');
 const hotspotsRoutes = require('./routes/hotspotsRoutes');
 const { startSimulation } = require('./services/radarSimulation')
+
+//tekne ve kiralama
 const boatsRoutes = require('./routes/boatsRoutes');
+const rentalsRoutes = require('./routes/rentalsRoutes');
 
 
 // Middleware'ler (Ara Yazılımlar)
@@ -36,9 +39,9 @@ app.use(requestLogger);
 // Trafik polisi gibi: "zones ile ilgili istek gelirse zonesRoutes'a git"
 app.use('/api/zones', zonesRoutes);
 app.use('/api/hotspots', hotspotsRoutes);
-app.use('/api/zones', zonesRoutes);
-app.use('/api/hotspots', hotspotsRoutes);
-app.use('/api/boats', boatsRoutes);   // 🔹 BUNU EKLE
+app.use('/api/boats', boatsRoutes);
+app.use('/api/rentals', rentalsRoutes);
+
 
 
 // Sağlık Kontrolü (Health Check) - Tarayıcıdan http://localhost:3000 yazınca bu çıkar

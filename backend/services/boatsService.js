@@ -2,7 +2,7 @@
 const pool = require('../config/db');
 
 exports.getActiveBoats = async () => {
-    const query = `
+  const query = `
     SELECT
       r.rental_id,
       b.boat_id,
@@ -16,15 +16,41 @@ exports.getActiveBoats = async () => {
       AND b.current_geom IS NOT NULL;
   `;
 
-    const { rows } = await pool.query(query);
+  const { rows } = await pool.query(query);
 
-    // Basit bir dizi döndürüyoruz
-    return rows.map(row => ({
-        rental_id: row.rental_id,
-        boat_id: row.boat_id,
-        name: row.name,
-        capacity: row.capacity,
-        status: row.status,
-        geometry: JSON.parse(row.geometry)
-    }));
+  // Basit bir dizi döndürüyoruz
+  return rows.map(row => ({
+    rental_id: row.rental_id,
+    boat_id: row.boat_id,
+    name: row.name,
+    capacity: row.capacity,
+    status: row.status,
+    geometry: JSON.parse(row.geometry)
+  }));
+};
+
+// 🔹 Yeni: müsait tekneler (iskede bekleyenler)
+exports.getAvailableBoats = async () => {
+  const query = `
+    SELECT
+      boat_id,
+      name,
+      capacity,
+      price_per_hour,
+      status,
+      ST_AsGeoJSON(current_geom) AS geometry
+    FROM boats
+    WHERE status = 'available';
+  `;
+
+  const { rows } = await pool.query(query);
+
+  return rows.map(row => ({
+    boat_id: row.boat_id,
+    name: row.name,
+    capacity: row.capacity,
+    price_per_hour: row.price_per_hour,
+    status: row.status,
+    geometry: row.geometry ? JSON.parse(row.geometry) : null
+  }));
 };

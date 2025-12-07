@@ -1,7 +1,7 @@
 // frontend/src/App.jsx
 import React from 'react';
 import GameMap from './components/GameMap';
-import Sidebar from './components/SideBar';
+import Sidebar from './components/Sidebar';
 import './styles/index.css';
 
 function App() {
