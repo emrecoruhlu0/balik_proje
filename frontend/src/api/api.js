@@ -55,6 +55,40 @@ export const completeBoatRental = async (rentalId) => {
   return response.json();
 };
 
+// --- EKİPMAN KİRALAMA FONKSİYONLARI ---
+
+export const fetchAvailableEquipment = async () => {
+  const response = await fetch(`${BASE_URL}/equipments/available`);
+  if (!response.ok) throw new Error('Müsait ekipmanlar çekilemedi');
+  return response.json();
+};
+
+export const createEquipmentRental = async (equipmentId, durationMinutes = 60) => {
+  const response = await fetch(`${BASE_URL}/rentals/equipment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ equipmentId, durationMinutes }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.error || 'Ekipman kiralanamadı');
+  }
+  return response.json();
+};
+
+export const completeEquipmentRental = async (rentalId) => {
+  const response = await fetch(`${BASE_URL}/rentals/equipment/${rentalId}/complete`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => null);
+    throw new Error(err?.error || 'Kiralama tamamlanamadı');
+  }
+  return response.json();
+};
+
 // --- FORUM FONKSİYONLARI (DÜZELTİLEN KISIM) ---
 // Hata: Eski kodda 'request' fonksiyonu ve 'API_BASE' değişkeni yoktu.
 // Düzeltme: Hepsini 'fetch' ve 'BASE_URL' yapısına çevirdim.

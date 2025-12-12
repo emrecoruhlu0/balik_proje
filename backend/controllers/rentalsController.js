@@ -36,3 +36,37 @@ exports.completeBoatRental = asyncWrapper(async (req, res) => {
         return res.status(400).json({ error: err.message });
     }
 });
+
+exports.createEquipmentRental = asyncWrapper(async (req, res) => {
+    const { equipmentId, durationMinutes } = req.body;
+
+    if (!equipmentId) {
+        return res.status(400).json({ error: 'equipmentId is required' });
+    }
+
+    try {
+        const rental = await rentalsService.createEquipmentRental({
+            equipmentId,
+            durationMinutes,
+        });
+        res.status(201).json(rental);
+    } catch (err) {
+        return res.status(400).json({ error: err.message });
+    }
+});
+
+exports.completeEquipmentRental = asyncWrapper(async (req, res) => {
+    const { id } = req.params;
+    const rentalId = parseInt(id, 10);
+
+    if (Number.isNaN(rentalId)) {
+        return res.status(400).json({ error: 'Invalid rental id' });
+    }
+
+    try {
+        const rental = await rentalsService.completeEquipmentRental(rentalId);
+        res.json(rental);
+    } catch (err) {
+        return res.status(400).json({ error: err.message });
+    }
+});
