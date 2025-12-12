@@ -13,6 +13,7 @@ const forumRoutes = require('./routes/forumRoutes');
 //tekne ve kiralama
 const boatsRoutes = require('./routes/boatsRoutes');
 const rentalsRoutes = require('./routes/rentalsRoutes');
+const equipmentsRoutes = require('./routes/equipmentsRoutes');
 
 
 // Middleware'ler (Ara Yazılımlar)
@@ -42,10 +43,7 @@ app.use('/api/zones', zonesRoutes);
 app.use('/api/hotspots', hotspotsRoutes);
 app.use('/api/boats', boatsRoutes);
 app.use('/api/rentals', rentalsRoutes);
-
-app.use('/api/zones', zonesRoutes);
-app.use('/api/hotspots', hotspotsRoutes);
-app.use('/api/boats', boatsRoutes);
+app.use('/api/equipments', equipmentsRoutes);
 app.use('/api/forum', forumRoutes);
 
 

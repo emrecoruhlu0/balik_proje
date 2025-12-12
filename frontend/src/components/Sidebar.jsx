@@ -5,6 +5,9 @@ import {
   fetchAvailableBoats,
   createBoatRental,
   completeBoatRental,
+  fetchAvailableEquipment,
+  createEquipmentRental,
+  completeEquipmentRental,
 } from '../api/api';
 
 const TABS = {
@@ -26,6 +29,13 @@ const Sidebar = ({ selectedZone, currentUser }) => {
   const [activeRental, setActiveRental] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
 
+  // 🔹 Ekipman sekmesi için state'ler
+  const [availableEquipment, setAvailableEquipment] = useState([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(false);
+  const [equipmentError, setEquipmentError] = useState(null);
+  const [activeEquipmentRental, setActiveEquipmentRental] = useState(null);
+  const [equipmentActionMessage, setEquipmentActionMessage] = useState('');
+
   // BOAT tab aktif olduğunda müsait tekneleri yükle
   useEffect(() => {
     if (activeTab !== TABS.BOAT) return;
@@ -45,6 +55,27 @@ const Sidebar = ({ selectedZone, currentUser }) => {
     };
 
     loadBoats();
+  }, [activeTab]);
+
+  // EQUIP tab aktif olduğunda müsait ekipmanları yükle
+  useEffect(() => {
+    if (activeTab !== TABS.EQUIP) return;
+
+    const loadEquipment = async () => {
+      setEquipmentLoading(true);
+      setEquipmentError(null);
+      try {
+        const data = await fetchAvailableEquipment();
+        setAvailableEquipment(data);
+      } catch (err) {
+        console.error(err);
+        setEquipmentError('Ekipmanlar yüklenirken bir hata oluştu.');
+      } finally {
+        setEquipmentLoading(false);
+      }
+    };
+
+    loadEquipment();
   }, [activeTab]);
 
   const handleRentBoat = async (boatId) => {
@@ -79,6 +110,43 @@ const Sidebar = ({ selectedZone, currentUser }) => {
     } catch (err) {
       console.error(err);
       setActionMessage(
+        err.message || 'Kiralama tamamlanırken bir hata oluştu.'
+      );
+    }
+  };
+
+  const handleRentEquipment = async (equipmentId) => {
+    try {
+      setEquipmentActionMessage('');
+      const rental = await createEquipmentRental(equipmentId, 60); // 60 dakika demo
+      setActiveEquipmentRental(rental);
+      setEquipmentActionMessage(
+        `Ekipmanınız kiralandı! (Kiralama ID: ${rental.equipment_rental_id})`
+      );
+
+      // Müsait ekipman listesini güncelle
+      const data = await fetchAvailableEquipment();
+      setAvailableEquipment(data);
+    } catch (err) {
+      console.error(err);
+      setEquipmentActionMessage(err.message || 'Ekipman kiralanırken bir hata oluştu.');
+    }
+  };
+
+  const handleCompleteEquipmentRental = async () => {
+    if (!activeEquipmentRental) return;
+
+    try {
+      setEquipmentActionMessage('');
+      await completeEquipmentRental(activeEquipmentRental.equipment_rental_id);
+      setEquipmentActionMessage('Kiralama tamamlandı, ekipman iade edildi.');
+      setActiveEquipmentRental(null);
+
+      const data = await fetchAvailableEquipment();
+      setAvailableEquipment(data);
+    } catch (err) {
+      console.error(err);
+      setEquipmentActionMessage(
         err.message || 'Kiralama tamamlanırken bir hata oluştu.'
       );
     }
@@ -234,11 +302,120 @@ const Sidebar = ({ selectedZone, currentUser }) => {
   );
 
   const renderEquipTab = () => (
-    <div style={{ marginTop: '10px' }}>
+    <div
+      style={{
+        marginTop: '10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}
+    >
       <h3 style={{ color: '#00ffff', marginTop: 0 }}>🎣 Ekipman Kiralama</h3>
       <p style={{ fontSize: '0.9rem', color: '#ccc' }}>
-        Olta, ağ, can yeleği ve diğer ekipmanları buradan kiralayabileceksiniz.
+        Demo modunda, giriş yapmadan ekipman kiralayabilirsiniz.
       </p>
+
+      {equipmentLoading && (
+        <p style={{ fontSize: '0.85rem', color: '#888' }}>Ekipmanlar yükleniyor…</p>
+      )}
+
+      {equipmentError && (
+        <p style={{ fontSize: '0.85rem', color: '#f97373' }}>{equipmentError}</p>
+      )}
+
+      {!equipmentLoading && !equipmentError && availableEquipment.length === 0 && (
+        <p style={{ fontSize: '0.85rem', color: '#ccc' }}>
+          Şu an tüm ekipmanlar kiralanmış. Müsait ekipman yok gibi görünüyor.
+        </p>
+      )}
+
+      {!equipmentLoading && !equipmentError && availableEquipment.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {availableEquipment.map((equipment) => (
+            <div
+              key={equipment.equipment_id}
+              style={{
+                background: 'rgba(0, 255, 255, 0.05)',
+                border: '1px solid #00ffff33',
+                borderRadius: 6,
+                padding: 10,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div>
+                <strong>{equipment.brand} {equipment.model}</strong>
+                {equipment.type_name && (
+                  <>
+                    <br />
+                    Tip: {equipment.type_name}
+                  </>
+                )}
+                <br />
+                {equipment.price_per_hour} ₺/saat
+              </div>
+              <button
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: '#00ffff',
+                  color: '#00111f',
+                  fontWeight: 'bold',
+                  fontSize: '0.8rem',
+                }}
+                disabled={!!activeEquipmentRental}
+                onClick={() => handleRentEquipment(equipment.equipment_id)}
+              >
+                Kirala
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeEquipmentRental && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: 10,
+            borderRadius: 6,
+            border: '1px solid #22c55e55',
+            background: 'rgba(34, 197, 94, 0.08)',
+            fontSize: '0.85rem',
+          }}
+        >
+          <strong>Aktif Kiralamanız:</strong>
+          <br />
+          Kiralama ID: {activeEquipmentRental.equipment_rental_id}
+          <br />
+          <button
+            style={{
+              marginTop: 8,
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              background: '#22c55e',
+              color: '#00111f',
+              fontWeight: 'bold',
+            }}
+            onClick={handleCompleteEquipmentRental}
+          >
+            Kiralamayı Bitir
+          </button>
+        </div>
+      )}
+
+      {equipmentActionMessage && (
+        <p style={{ fontSize: '0.8rem', color: '#a5b4fc', marginTop: 4 }}>
+          {equipmentActionMessage}
+        </p>
+      )}
     </div>
   );
 

@@ -130,3 +130,129 @@ exports.completeBoatRental = async (rentalId) => {
         client.release();
     }
 };
+
+// 🔹 Ekipman kiralama başlat
+exports.createEquipmentRental = async ({ equipmentId, durationMinutes = 60 }) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1) Ekipmanı kilitle ve uygun mu kontrol et
+        const equipmentRes = await client.query(
+            `
+      SELECT equipment_id, status
+      FROM equipments
+      WHERE equipment_id = $1
+      FOR UPDATE;
+      `,
+            [equipmentId]
+        );
+
+        if (equipmentRes.rowCount === 0) {
+            throw new Error('Equipment not found');
+        }
+
+        const equipment = equipmentRes.rows[0];
+
+        if (equipment.status !== 'available') {
+            throw new Error('Equipment is not available');
+        }
+
+        // 2) Devam eden bir kiralama var mı kontrol et
+        const ongoingRental = await client.query(
+            `
+      SELECT equipment_rental_id
+      FROM equipment_rentals
+      WHERE equipment_id = $1 AND status = 'ongoing';
+      `,
+            [equipmentId]
+        );
+
+        if (ongoingRental.rowCount > 0) {
+            throw new Error('Equipment is already rented');
+        }
+
+        const safeDuration =
+            typeof durationMinutes === 'number' && Number.isFinite(durationMinutes)
+                ? durationMinutes
+                : 60;
+
+        // 3) Kiralama kaydı oluştur (şimdilik user_id = 1 demo kullanıcı)
+        const rentalRes = await client.query(
+            `
+      INSERT INTO equipment_rentals (user_id, equipment_id, start_at, end_at, status)
+      VALUES ($1, $2, NOW(), NOW() + ($3 || ' minutes')::interval, 'ongoing')
+      RETURNING equipment_rental_id, user_id, equipment_id, start_at, end_at, status;
+      `,
+            [1, equipmentId, safeDuration]
+        );
+
+        const rental = rentalRes.rows[0];
+
+        // 4) Ekipmanın durumunu rented yap
+        await client.query(
+            `
+      UPDATE equipments
+      SET status = 'rented'
+      WHERE equipment_id = $1;
+      `,
+            [equipmentId]
+        );
+
+        await client.query('COMMIT');
+        return rental;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
+// 🔹 Ekipman kiralamayı bitir
+exports.completeEquipmentRental = async (rentalId) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1) Kiralamayı güncelle
+        const rentalRes = await client.query(
+            `
+      UPDATE equipment_rentals
+      SET status = 'completed',
+          end_at = NOW()
+      WHERE equipment_rental_id = $1
+        AND status = 'ongoing'
+      RETURNING equipment_rental_id, equipment_id, user_id, start_at, end_at, status;
+      `,
+            [rentalId]
+        );
+
+        if (rentalRes.rowCount === 0) {
+            throw new Error('Ongoing rental not found');
+        }
+
+        const rental = rentalRes.rows[0];
+        const equipmentId = rental.equipment_id;
+
+        // 2) Ekipmanı tekrar available yap
+        await client.query(
+            `
+      UPDATE equipments
+      SET status = 'available'
+      WHERE equipment_id = $1;
+      `,
+            [equipmentId]
+        );
+
+        await client.query('COMMIT');
+        return rental;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
