@@ -71,6 +71,22 @@ class ForumService {
     const { rows } = await pool.query(query, [postId, userId, content]);
     return rows[0];
   }
+
+  // 6. Kullanıcının kendi postlarını getir
+  static async getMyPosts(userId) {
+    const query = `
+      SELECT p.post_id, p.title, p.content, p.created_at, p.visibility,
+             u.full_name as author,
+             z.name as zone_name, z.zone_id
+      FROM posts p
+      JOIN users u ON p.user_id = u.user_id
+      LEFT JOIN lake_zones z ON p.zone_id = z.zone_id
+      WHERE p.user_id = $1
+      ORDER BY p.created_at DESC
+    `;
+    const { rows } = await pool.query(query, [userId]);
+    return rows;
+  }
 }
 
 module.exports = ForumService;

@@ -7,6 +7,9 @@ import './styles/index.css';
 function App() {
   // Seçili bölgeyi burada tutuyoruz (Başlangıçta null = tüm göl)
   const [selectedZone, setSelectedZone] = useState(null);
+  
+  // Demo için currentUser (gerçek uygulamada login sistemi ile gelecek)
+  const currentUser = { user_id: 1, full_name: 'Demo Kullanıcı' };
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
@@ -37,7 +40,7 @@ function App() {
 
       {/* SAĞ TARAF: SIDEBAR */}
       {/* Seçili bölge bilgisini Sidebar'a gönderiyoruz, o da Forum'a iletecek */}
-      <Sidebar selectedZone={selectedZone} />
+      <Sidebar selectedZone={selectedZone} currentUser={currentUser} />
     </div>
   );
 }

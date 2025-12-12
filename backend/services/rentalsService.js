@@ -198,6 +198,31 @@ exports.completeEquipmentRental = async (rentalId) => {
     }
 };
 
+// 🔹 Kullanıcının aktif tekne kiralamalarını getir (maliyet bilgisiyle)
+exports.getMyActiveBoatRentals = async (userId) => {
+    const client = await pool.connect();
+    try {
+        const query = `
+            SELECT 
+                r.rental_id,
+                r.start_at,
+                r.status,
+                b.boat_id,
+                b.name as boat_name,
+                b.price_per_hour
+            FROM rentals r
+            JOIN boats b ON r.boat_id = b.boat_id
+            WHERE r.user_id = $1 
+              AND r.status = 'ongoing'
+            ORDER BY r.start_at DESC;
+        `;
+        const { rows } = await client.query(query, [userId]);
+        return rows;
+    } finally {
+        client.release();
+    }
+};
+
 // 🔹 Kullanıcının aktif ekipman kiralamalarını getir
 exports.getMyActiveEquipmentRentals = async (userId) => {
     const client = await pool.connect();
@@ -210,6 +235,7 @@ exports.getMyActiveEquipmentRentals = async (userId) => {
                 e.equipment_id,
                 e.brand,
                 e.model,
+                e.price_per_hour,
                 et.name as type_name
             FROM equipment_rentals er
             JOIN equipments e ON er.equipment_id = e.equipment_id

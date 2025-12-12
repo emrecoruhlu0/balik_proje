@@ -61,3 +61,20 @@ exports.addComment = async (req, res, next) => {
     res.status(500).json({ error: 'Yorum yapılamadı' });
   }
 };
+
+// 6. Kullanıcının kendi postlarını getir
+exports.getMyPosts = async (req, res, next) => {
+  const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
+  
+  if (!userId || Number.isNaN(userId)) {
+    return res.status(400).json({ error: 'Geçersiz kullanıcı ID' });
+  }
+
+  try {
+    const posts = await ForumService.getMyPosts(userId);
+    res.json(posts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Postlar çekilemedi' });
+  }
+};

@@ -164,3 +164,40 @@ export const fetchMyActiveEquipment = async () => {
   if (!response.ok) throw new Error('Kiralamalarım çekilemedi');
   return response.json();
 };
+
+// --- KULLANICI VE HESAP FONKSİYONLARI ---
+
+// Kullanıcı bilgilerini getir
+export const fetchUserInfo = async (userId) => {
+  const response = await fetch(`${BASE_URL}/users/${userId}`);
+  if (!response.ok) throw new Error('Kullanıcı bilgileri alınamadı');
+  return response.json();
+};
+
+// Kullanıcının aktif tekne kiralamalarını getir
+export const fetchMyActiveBoatRentals = async (userId) => {
+  const response = await fetch(`${BASE_URL}/rentals/boat/my-active?userId=${userId}`);
+  if (!response.ok) throw new Error('Tekne kiralamaları alınamadı');
+  return response.json();
+};
+
+// Kullanıcının kendi postlarını getir
+export const fetchMyPosts = async (userId) => {
+  const response = await fetch(`${BASE_URL}/forum/posts/my-posts?userId=${userId}`);
+  if (!response.ok) throw new Error('Postlar alınamadı');
+  return response.json();
+};
+
+// --- ETKİNLİKLER FONKSİYONLARI ---
+
+// Bölgeye göre etkinlikleri getir
+export const fetchZoneActivities = async (zoneId) => {
+  try {
+    const response = await fetch(`${BASE_URL}/activities/zone/${zoneId}`);
+    if (!response.ok) return { past: [], current: [], upcoming: [] };
+    return response.json();
+  } catch (error) {
+    console.warn(`Zone ${zoneId} etkinlikleri çekilemedi:`, error);
+    return { past: [], current: [], upcoming: [] };
+  }
+};
