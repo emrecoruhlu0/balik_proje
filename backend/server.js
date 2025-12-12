@@ -14,6 +14,8 @@ const forumRoutes = require('./routes/forumRoutes');
 const boatsRoutes = require('./routes/boatsRoutes');
 const rentalsRoutes = require('./routes/rentalsRoutes');
 const equipmentsRoutes = require('./routes/equipmentsRoutes');
+const usersRoutes = require('./routes/usersRoutes');
+const activitiesRoutes = require('./routes/activitiesRoutes');
 
 
 // Middleware'ler (Ara Yazılımlar)
@@ -45,6 +47,8 @@ app.use('/api/boats', boatsRoutes);
 app.use('/api/rentals', rentalsRoutes);
 app.use('/api/equipments', equipmentsRoutes);
 app.use('/api/forum', forumRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/activities', activitiesRoutes);
 
 
 // Sağlık Kontrolü (Health Check) - Tarayıcıdan http://localhost:3000 yazınca bu çıkar

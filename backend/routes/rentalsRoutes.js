@@ -6,12 +6,16 @@ const {
     completeBoatRental,
     createEquipmentRental,
     completeEquipmentRental,
+    getMyActiveBoatRentals,
     getMyActiveEquipmentRentals,
     returnAllEquipment,
 } = require('../controllers/rentalsController');
 
 // Tekne kiralama başlat
 router.post('/boat', createBoatRental);
+
+// Kullanıcının aktif tekne kiralamalarını getir
+router.get('/boat/my-active', getMyActiveBoatRentals);
 
 // --- YENİ EKLENEN ROTA ---
 // Kullanıcının üzerindeki ekipmanları getir

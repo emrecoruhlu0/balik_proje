@@ -71,6 +71,19 @@ exports.completeEquipmentRental = asyncWrapper(async (req, res) => {
     }
 });
 
+exports.getMyActiveBoatRentals = asyncWrapper(async (req, res) => {
+    // NOT: Giriş sistemi gelince burası req.user.id olacak.
+    // Şimdilik query param'dan alıyoruz veya User 1 sabit
+    const userId = req.query.userId ? parseInt(req.query.userId, 10) : 1;
+    
+    if (Number.isNaN(userId)) {
+        return res.status(400).json({ error: 'Geçersiz kullanıcı ID' });
+    }
+
+    const rentals = await rentalsService.getMyActiveBoatRentals(userId);
+    res.json(rentals);
+});
+
 exports.getMyActiveEquipmentRentals = asyncWrapper(async (req, res) => {
     // NOT: Giriş sistemi gelince burası req.user.id olacak.
     // Şimdilik User 1 olarak sabitliyoruz.

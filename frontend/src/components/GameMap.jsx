@@ -8,14 +8,50 @@ import { isPointInsidePolygon } from '../utils/geometry';
 import { fetchZones, fetchHotspots, fetchActiveBoats } from '../api/api';
 
 // --- İKON TANIMLARI ---
+// Balık ikonu (SVG)
 const fishIcon = new L.DivIcon({
   className: 'custom-fish-icon',
-  html: `<div style="width:14px; height:14px; border-radius:50%; background:#00ffff; box-shadow:0 0 12px #00ffff;"></div>`
+  html: `
+    <div style="
+      width: 32px; 
+      height: 32px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+    ">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1s1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm0 2c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5 2.24-5 5-5z" fill="#00ffff"/>
+        <circle cx="10" cy="8" r="1.5" fill="#ffffff"/>
+        <path d="M12 20c-1.1 0-2-.9-2-2h4c0 1.1-.9 2-2 2z" fill="#00ffff"/>
+      </svg>
+    </div>
+  `,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
 });
 
+// Tekne ikonu (SVG)
 const boatIcon = new L.DivIcon({
   className: 'custom-boat-icon',
-  html: `<div style="width:16px; height:16px; border-radius:50%; background:#ffa500; box-shadow:0 0 14px #ffa500;"></div>`
+  html: `
+    <div style="
+      width: 36px; 
+      height: 36px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      filter: drop-shadow(0 0 8px rgba(255, 165, 0, 0.8));
+    ">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l2.18-7.65-2.23-.73V4c0-1.1-.9-2-2-2h-3V1h-2v1H8V1H6v1H3c-1.1 0-2 .9-2 2v6.62l-2.23.73L3.95 19zM6 6h12v6.97L12 12.6 6 12.97V6z" fill="#ffa500"/>
+      </svg>
+    </div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18]
 });
 
 // --- YARDIMCI BİLEŞEN: Harita Boşluğuna Tıklama ---

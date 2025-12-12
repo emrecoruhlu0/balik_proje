@@ -5,6 +5,7 @@ const forumController = require('../controllers/forumController');
 // Ana Post İşlemleri
 router.get('/posts', forumController.getAllPosts);
 router.post('/posts', forumController.createPost);
+router.get('/posts/my-posts', forumController.getMyPosts);
 
 // Zone ve Yorum İşlemleri
 router.get('/zone/:zoneId', forumController.getPostsByZone);

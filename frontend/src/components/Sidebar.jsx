@@ -10,6 +10,10 @@ import {
   completeEquipmentRental,
   fetchMyActiveEquipment,
   returnAllEquipment,
+  fetchUserInfo,
+  fetchMyActiveBoatRentals,
+  fetchMyPosts,
+  fetchZoneActivities,
 } from '../api/api';
 
 const TABS = {
@@ -18,6 +22,14 @@ const TABS = {
   EQUIP: 'equip',
   FORUM: 'forum',
   ACCOUNT: 'account',
+};
+
+// Account tab için alt tab'ler
+const ACCOUNT_SUBTABS = {
+  LOGIN: 'login',
+  PROFILE: 'profile',
+  RENTALS: 'rentals',
+  POSTS: 'posts',
 };
 
 const Sidebar = ({ selectedZone, currentUser }) => {
@@ -36,6 +48,22 @@ const Sidebar = ({ selectedZone, currentUser }) => {
   const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [equipmentError, setEquipmentError] = useState(null);
   const [equipmentActionMessage, setEquipmentActionMessage] = useState('');
+
+  // 🔹 Account tab için state'ler
+  const [accountSubtab, setAccountSubtab] = useState(ACCOUNT_SUBTABS.LOGIN);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Şimdilik currentUser'dan kontrol edilecek
+  const [userInfo, setUserInfo] = useState(null);
+  const [myActiveRentals, setMyActiveRentals] = useState({ boats: [], equipment: [] });
+  const [myPosts, setMyPosts] = useState([]);
+  const [accountLoading, setAccountLoading] = useState(false);
+  
+  // Login form state'leri
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // 🔹 Etkinlikler için state'ler
+  const [activities, setActivities] = useState({ past: [], current: [], upcoming: [] });
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   // BOAT tab aktif olduğunda müsait tekneleri yükle (AYNEN KORUNDU)
   useEffect(() => {
@@ -84,6 +112,103 @@ const Sidebar = ({ selectedZone, currentUser }) => {
 
     loadEquipmentData();
   }, [activeTab]);
+
+  // Account tab aktif olduğunda verileri yükle
+  useEffect(() => {
+    if (activeTab !== TABS.ACCOUNT) return;
+    
+    // currentUser varsa giriş yapılmış sayılır (şimdilik)
+    if (currentUser && currentUser.user_id) {
+      setIsLoggedIn(true);
+      loadAccountData();
+    } else {
+      setIsLoggedIn(false);
+      setAccountSubtab(ACCOUNT_SUBTABS.LOGIN);
+    }
+  }, [activeTab, currentUser]);
+
+  // Bölge seçildiğinde veya INFO tab aktif olduğunda etkinlikleri yükle
+  useEffect(() => {
+    if (activeTab !== TABS.INFO || !selectedZone) {
+      setActivities({ past: [], current: [], upcoming: [] });
+      return;
+    }
+
+    const loadActivities = async () => {
+      const zoneId = selectedZone.zone_id || selectedZone.id;
+      if (!zoneId) return;
+
+      setActivitiesLoading(true);
+      try {
+        const data = await fetchZoneActivities(zoneId);
+        setActivities(data);
+      } catch (err) {
+        console.error('Etkinlikler yüklenemedi:', err);
+        setActivities({ past: [], current: [], upcoming: [] });
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
+    loadActivities();
+  }, [selectedZone, activeTab]);
+
+  // Account verilerini yükle
+  const loadAccountData = async () => {
+    if (!currentUser || !currentUser.user_id) return;
+    
+    setAccountLoading(true);
+    try {
+      // Paralel olarak tüm verileri çek
+      const [userData, boatRentals, equipmentRentals, posts] = await Promise.all([
+        fetchUserInfo(currentUser.user_id).catch(() => null),
+        fetchMyActiveBoatRentals(currentUser.user_id).catch(() => []),
+        fetchMyActiveEquipment().catch(() => []),
+        fetchMyPosts(currentUser.user_id).catch(() => []),
+      ]);
+      
+      setUserInfo(userData);
+      setMyActiveRentals({ boats: boatRentals || [], equipment: equipmentRentals || [] });
+      setMyPosts(posts || []);
+    } catch (err) {
+      console.error('Account verileri yüklenemedi:', err);
+    } finally {
+      setAccountLoading(false);
+    }
+  };
+
+  // Login handler (şimdilik basit, sonra API'ye bağlanacak)
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    // TODO: API çağrısı yapılacak
+    // Şimdilik demo için currentUser varsa giriş yapılmış sayılır
+    if (currentUser && currentUser.user_id) {
+      setIsLoggedIn(true);
+      setAccountSubtab(ACCOUNT_SUBTABS.PROFILE);
+      loadAccountData();
+    } else {
+      alert('Giriş yapılamadı. Demo modunda user_id: 1 kullanılıyor.');
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserInfo(null);
+    setMyActiveRentals({ boats: [], equipment: [] });
+    setMyPosts([]);
+    setAccountSubtab(ACCOUNT_SUBTABS.LOGIN);
+  };
+
+  // Anlık maliyet hesaplama fonksiyonu
+  const calculateCurrentCost = (rental, pricePerHour) => {
+    if (!rental || !rental.start_at || !pricePerHour) return 0;
+    const startTime = new Date(rental.start_at);
+    const now = new Date();
+    const durationSeconds = (now - startTime) / 1000;
+    const durationHours = Math.ceil(durationSeconds / 3600);
+    return durationHours * parseFloat(pricePerHour);
+  };
 
   // TEKNE FONKSİYONLARI (AYNEN KORUNDU)
   const handleRentBoat = async (boatId) => {
@@ -174,25 +299,158 @@ const Sidebar = ({ selectedZone, currentUser }) => {
 
   // --- TAB RENDER FONKSİYONLARI ---
 
-  // INFO TAB (AYNEN KORUNDU)
-  const renderInfoTab = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <h2 style={{ color: '#00ffff', marginTop: 0, textShadow: '0 0 10px #00ffff' }}>
-        Van Gölü Balıkçılık İşletmesi
-      </h2>
-      <p style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.6 }}>
-        {selectedZone 
-          ? `Şu an "${selectedZone.name}" bölgesini inceliyorsunuz. Bu bölgedeki avlanma kurallarına dikkat ediniz.`
-          : "Türkiye'nin en büyük sodalı gölü olan Van Gölü üzerinde güvenli ve kontrollü balıkçılık deneyimi sunuyoruz."
-        }
-      </p>
-      <div style={{ background: 'rgba(0, 255, 255, 0.08)', borderRadius: 6, padding: 10, border: '1px solid #00ffff33', fontSize: '0.85rem' }}>
-        <strong>Seçili Bölge:</strong> {selectedZone ? selectedZone.name : "Tüm Göl"} <br />
-        <strong>Konum:</strong> Van Gölü / Gevaş Merkezi<br />
-        <strong>Hizmetler:</strong> Tekne kiralama, ekipman kiralama, rehberli turlar.
+  // Tarih formatlama fonksiyonu
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // INFO TAB (ETKİNLİKLER EKLENDİ)
+  const renderInfoTab = () => {
+    const hasActivities = activities.past.length > 0 || activities.current.length > 0 || activities.upcoming.length > 0;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <h2 style={{ color: '#00ffff', marginTop: 0, textShadow: '0 0 10px #00ffff' }}>
+          Van Gölü Balıkçılık İşletmesi
+        </h2>
+        <p style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: 1.6 }}>
+          {selectedZone 
+            ? `Şu an "${selectedZone.name}" bölgesini inceliyorsunuz. Bu bölgedeki avlanma kurallarına dikkat ediniz.`
+            : "Türkiye'nin en büyük sodalı gölü olan Van Gölü üzerinde güvenli ve kontrollü balıkçılık deneyimi sunuyoruz."
+          }
+        </p>
+        <div style={{ background: 'rgba(0, 255, 255, 0.08)', borderRadius: 6, padding: 10, border: '1px solid #00ffff33', fontSize: '0.85rem' }}>
+          <strong>Seçili Bölge:</strong> {selectedZone ? selectedZone.name : "Tüm Göl"} <br />
+          <strong>Konum:</strong> Van Gölü / Gevaş Merkezi<br />
+          <strong>Hizmetler:</strong> Tekne kiralama, ekipman kiralama, rehberli turlar.
+        </div>
+
+        {/* ETKİNLİKLER BÖLÜMÜ */}
+        {selectedZone && (
+          <div style={{ marginTop: '10px' }}>
+            <h3 style={{ color: '#00ffff', marginTop: 0, marginBottom: '10px', fontSize: '1rem' }}>
+              📅 Bölge Etkinlikleri
+            </h3>
+            
+            {activitiesLoading ? (
+              <p style={{ fontSize: '0.85rem', color: '#888' }}>Etkinlikler yükleniyor…</p>
+            ) : !hasActivities ? (
+              <p style={{ fontSize: '0.85rem', color: '#666' }}>Bu bölgede henüz etkinlik bulunmuyor.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {/* GÜNCEL ETKİNLİKLER */}
+                {activities.current.length > 0 && (
+                  <div>
+                    <h4 style={{ color: '#22c55e', fontSize: '0.9rem', margin: '0 0 8px 0' }}>
+                      🟢 Güncel Etkinlikler
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {activities.current.map((activity) => (
+                        <div
+                          key={activity.activity_id}
+                          style={{
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                            borderRadius: 6,
+                            padding: 10,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <strong style={{ color: '#22c55e' }}>{activity.title}</strong>
+                          {activity.description && (
+                            <p style={{ margin: '4px 0', color: '#ccc', fontSize: '0.8rem' }}>
+                              {activity.description}
+                            </p>
+                          )}
+                          <p style={{ margin: '4px 0', fontSize: '0.75rem', color: '#aaa' }}>
+                            {formatDate(activity.start_date)} - {formatDate(activity.end_date)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GELECEK ETKİNLİKLER */}
+                {activities.upcoming.length > 0 && (
+                  <div>
+                    <h4 style={{ color: '#3b82f6', fontSize: '0.9rem', margin: '0 0 8px 0' }}>
+                      🔵 Gelecek Etkinlikler
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {activities.upcoming.map((activity) => (
+                        <div
+                          key={activity.activity_id}
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.1)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            borderRadius: 6,
+                            padding: 10,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          <strong style={{ color: '#3b82f6' }}>{activity.title}</strong>
+                          {activity.description && (
+                            <p style={{ margin: '4px 0', color: '#ccc', fontSize: '0.8rem' }}>
+                              {activity.description}
+                            </p>
+                          )}
+                          <p style={{ margin: '4px 0', fontSize: '0.75rem', color: '#aaa' }}>
+                            {formatDate(activity.start_date)} - {formatDate(activity.end_date)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* GEÇMİŞ ETKİNLİKLER */}
+                {activities.past.length > 0 && (
+                  <div>
+                    <h4 style={{ color: '#888', fontSize: '0.9rem', margin: '0 0 8px 0' }}>
+                      ⚪ Geçmiş Etkinlikler
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {activities.past.map((activity) => (
+                        <div
+                          key={activity.activity_id}
+                          style={{
+                            background: 'rgba(136, 136, 136, 0.1)',
+                            border: '1px solid rgba(136, 136, 136, 0.3)',
+                            borderRadius: 6,
+                            padding: 10,
+                            fontSize: '0.85rem',
+                            opacity: 0.7,
+                          }}
+                        >
+                          <strong style={{ color: '#888' }}>{activity.title}</strong>
+                          {activity.description && (
+                            <p style={{ margin: '4px 0', color: '#666', fontSize: '0.8rem' }}>
+                              {activity.description}
+                            </p>
+                          )}
+                          <p style={{ margin: '4px 0', fontSize: '0.75rem', color: '#666' }}>
+                            {formatDate(activity.start_date)} - {formatDate(activity.end_date)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   // BOAT TAB (AYNEN KORUNDU)
   const renderBoatTab = () => (
@@ -319,10 +577,286 @@ const Sidebar = ({ selectedZone, currentUser }) => {
     </div>
   );
 
-  const renderAccountTab = () => (
-    <div style={{ marginTop: '10px' }}>
-      <h3 style={{ color: '#00ffff', marginTop: 0 }}>👤 Hesap</h3>
-      <p style={{ fontSize: '0.9rem', color: '#ccc' }}>Buraya Giriş / Kayıt formu gelecek.</p>
+  // ACCOUNT TAB - YENİ
+  const renderAccountTab = () => {
+    // Giriş yapılmamışsa login ekranı
+    if (!isLoggedIn || !currentUser) {
+      return (
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <h3 style={{ color: '#00ffff', marginTop: 0 }}>🔐 Giriş Yap</h3>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <input
+              type="email"
+              placeholder="E-posta"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              required
+              style={{ padding: '10px', background: '#111', border: '1px solid #333', color: 'white', borderRadius: '4px', outline: 'none' }}
+            />
+            <input
+              type="password"
+              placeholder="Şifre"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              required
+              style={{ padding: '10px', background: '#111', border: '1px solid #333', color: 'white', borderRadius: '4px', outline: 'none' }}
+            />
+            <button
+              type="submit"
+              style={{ padding: '10px', background: '#00ffff', color: '#00111f', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Giriş Yap
+            </button>
+          </form>
+          <p style={{ fontSize: '0.8rem', color: '#888', textAlign: 'center' }}>
+            Hesabınız yok mu? <a href="#" style={{ color: '#00ffff' }}>Kayıt Ol</a>
+          </p>
+        </div>
+      );
+    }
+
+    // Giriş yapılmışsa alt tab'ler
+    return (
+      <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%' }}>
+        {/* Alt Tab Butonları */}
+        <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #123', paddingBottom: '4px', marginBottom: '10px' }}>
+          <button
+            onClick={() => setAccountSubtab(ACCOUNT_SUBTABS.PROFILE)}
+            style={{
+              flex: 1,
+              padding: '6px',
+              fontSize: '0.75rem',
+              border: 'none',
+              cursor: 'pointer',
+              background: accountSubtab === ACCOUNT_SUBTABS.PROFILE ? '#00ffff' : 'transparent',
+              color: accountSubtab === ACCOUNT_SUBTABS.PROFILE ? '#00111f' : '#9aa4b1',
+              fontWeight: accountSubtab === ACCOUNT_SUBTABS.PROFILE ? 'bold' : 'normal',
+            }}
+          >
+            Profil
+          </button>
+          <button
+            onClick={() => setAccountSubtab(ACCOUNT_SUBTABS.RENTALS)}
+            style={{
+              flex: 1,
+              padding: '6px',
+              fontSize: '0.75rem',
+              border: 'none',
+              cursor: 'pointer',
+              background: accountSubtab === ACCOUNT_SUBTABS.RENTALS ? '#00ffff' : 'transparent',
+              color: accountSubtab === ACCOUNT_SUBTABS.RENTALS ? '#00111f' : '#9aa4b1',
+              fontWeight: accountSubtab === ACCOUNT_SUBTABS.RENTALS ? 'bold' : 'normal',
+            }}
+          >
+            Kiralamalarım
+          </button>
+          <button
+            onClick={() => setAccountSubtab(ACCOUNT_SUBTABS.POSTS)}
+            style={{
+              flex: 1,
+              padding: '6px',
+              fontSize: '0.75rem',
+              border: 'none',
+              cursor: 'pointer',
+              background: accountSubtab === ACCOUNT_SUBTABS.POSTS ? '#00ffff' : 'transparent',
+              color: accountSubtab === ACCOUNT_SUBTABS.POSTS ? '#00111f' : '#9aa4b1',
+              fontWeight: accountSubtab === ACCOUNT_SUBTABS.POSTS ? 'bold' : 'normal',
+            }}
+          >
+            Postlarım
+          </button>
+        </div>
+
+        {/* Alt Tab İçerikleri */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {accountLoading ? (
+            <p style={{ color: '#888', textAlign: 'center' }}>Yükleniyor...</p>
+          ) : (
+            <>
+              {accountSubtab === ACCOUNT_SUBTABS.PROFILE && renderProfileSubtab()}
+              {accountSubtab === ACCOUNT_SUBTABS.RENTALS && renderRentalsSubtab()}
+              {accountSubtab === ACCOUNT_SUBTABS.POSTS && renderPostsSubtab()}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Profil Alt Tab
+  const renderProfileSubtab = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <h4 style={{ color: '#00ffff', margin: 0 }}>👤 Kullanıcı Bilgileri</h4>
+      {userInfo ? (
+        <div style={{ background: 'rgba(0, 255, 255, 0.05)', border: '1px solid #00ffff33', borderRadius: 6, padding: 12 }}>
+          <p style={{ margin: '4px 0' }}><strong>Ad Soyad:</strong> {userInfo.full_name}</p>
+          <p style={{ margin: '4px 0' }}><strong>E-posta:</strong> {userInfo.email || 'Belirtilmemiş'}</p>
+          <p style={{ margin: '4px 0' }}><strong>Telefon:</strong> {userInfo.phone || 'Belirtilmemiş'}</p>
+          <p style={{ margin: '4px 0' }}><strong>Kayıt Tarihi:</strong> {new Date(userInfo.created_at).toLocaleDateString('tr-TR')}</p>
+        </div>
+      ) : (
+        <p style={{ color: '#888' }}>Kullanıcı bilgileri yüklenemedi.</p>
+      )}
+      <button
+        onClick={handleLogout}
+        style={{
+          padding: '8px',
+          background: '#dc2626',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+        }}
+      >
+        Çıkış Yap
+      </button>
+    </div>
+  );
+
+  // Kiralamalar Alt Tab
+  const renderRentalsSubtab = () => {
+    const totalBoatCost = myActiveRentals.boats.reduce((sum, rental) => {
+      return sum + calculateCurrentCost(rental, rental.price_per_hour || 0);
+    }, 0);
+
+    const totalEquipmentCost = myActiveRentals.equipment.reduce((sum, rental) => {
+      return sum + calculateCurrentCost(rental, rental.price_per_hour || 0);
+    }, 0);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <h4 style={{ color: '#00ffff', margin: 0 }}>🛶 Aktif Kiralamalarım</h4>
+
+        {/* Tekneler */}
+        {myActiveRentals.boats.length > 0 && (
+          <div>
+            <h5 style={{ color: '#22c55e', fontSize: '0.85rem', margin: '0 0 8px 0' }}>Tekneler</h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {myActiveRentals.boats.map((rental) => {
+                const currentCost = calculateCurrentCost(rental, rental.price_per_hour || 0);
+                return (
+                  <div
+                    key={rental.rental_id}
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.1)',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: 6,
+                      padding: 10,
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <strong>{rental.boat_name || 'Tekne'}</strong>
+                      <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{currentCost.toFixed(2)} ₺</span>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#ccc', margin: '4px 0' }}>
+                      Başlangıç: {new Date(rental.start_at).toLocaleString('tr-TR')}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                      {rental.price_per_hour} ₺/saat
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Ekipmanlar */}
+        {myActiveRentals.equipment.length > 0 && (
+          <div>
+            <h5 style={{ color: '#22c55e', fontSize: '0.85rem', margin: '0 0 8px 0' }}>Ekipmanlar</h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {myActiveRentals.equipment.map((rental) => {
+                const currentCost = calculateCurrentCost(rental, rental.price_per_hour || 0);
+                return (
+                  <div
+                    key={rental.equipment_rental_id}
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.1)',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: 6,
+                      padding: 10,
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <strong>{rental.type_name || 'Ekipman'}</strong>
+                      <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{currentCost.toFixed(2)} ₺</span>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#ccc', margin: '4px 0' }}>
+                      {rental.brand} {rental.model}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                      Başlangıç: {new Date(rental.start_at).toLocaleString('tr-TR')} | {rental.price_per_hour} ₺/saat
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Toplam */}
+        {(myActiveRentals.boats.length > 0 || myActiveRentals.equipment.length > 0) && (
+          <div
+            style={{
+              background: 'rgba(0, 255, 255, 0.1)',
+              border: '1px solid #00ffff',
+              borderRadius: 6,
+              padding: 12,
+              marginTop: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ color: '#00ffff' }}>Toplam Anlık Maliyet:</strong>
+              <strong style={{ color: '#00ffff', fontSize: '1.1rem' }}>
+                {(totalBoatCost + totalEquipmentCost).toFixed(2)} ₺
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {myActiveRentals.boats.length === 0 && myActiveRentals.equipment.length === 0 && (
+          <p style={{ color: '#888', textAlign: 'center' }}>Aktif kiralamanız bulunmuyor.</p>
+        )}
+      </div>
+    );
+  };
+
+  // Postlar Alt Tab
+  const renderPostsSubtab = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <h4 style={{ color: '#00ffff', margin: 0 }}>📝 Paylaştığım Postlar</h4>
+      {myPosts.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {myPosts.map((post) => (
+            <div
+              key={post.post_id}
+              style={{
+                background: 'rgba(0, 255, 255, 0.05)',
+                border: '1px solid #00ffff33',
+                borderRadius: 6,
+                padding: 10,
+              }}
+            >
+              <h5 style={{ margin: '0 0 6px 0', color: 'white', fontSize: '0.9rem' }}>{post.title}</h5>
+              <p style={{ fontSize: '0.8rem', color: '#ccc', margin: '4px 0' }}>{post.content}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#888' }}>
+                  {post.zone_name ? `📍 ${post.zone_name}` : '🌐 Genel'}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#888' }}>
+                  {new Date(post.created_at).toLocaleDateString('tr-TR')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ color: '#888', textAlign: 'center' }}>Henüz post paylaşmadınız.</p>
+      )}
     </div>
   );
 
