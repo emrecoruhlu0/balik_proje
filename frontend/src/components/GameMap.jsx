@@ -5,7 +5,7 @@ import L from 'leaflet';
 
 // Kendi yazdığımız modüller
 import { isPointInsidePolygon } from '../utils/geometry';
-import { fetchZones, fetchHotspots, fetchActiveBoats, fetchZoneStats, fetchAllZonesStats } from '../api/api';
+import { fetchZones, fetchHotspots, fetchActiveBoats, fetchZoneStats, fetchAllZonesStats, fetchUpcomingActivitiesByZone } from '../api/api';
 
 // --- İKON TANIMLARI ---
 // Balık ikonu (SVG)
@@ -146,6 +146,112 @@ function MapBackgroundClick({ onDeselect }) {
     },
   });
   return null;
+}
+
+// --- ETKİNLİK BADGE MARKER BİLEŞENİ ---
+// Badge'e tıklandığında gelecek etkinlikleri gösterir
+function ActivityBadgeMarker({ zoneId, position, activityCount }) {
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    const marker = markerRef.current?.leafletElement;
+    if (!marker) return;
+
+    // İlk popup içeriği
+    const loadingContent = '<div style="text-align: center; padding: 10px;">Yükleniyor...</div>';
+    marker.bindPopup(loadingContent);
+
+    // Popup açıldığında etkinlikleri yükle
+    const handlePopupOpen = async () => {
+      try {
+        const upcomingActivities = await fetchUpcomingActivitiesByZone(zoneId);
+        // Sadece gelecek etkinlikleri filtrele (start_date > NOW)
+        const futureActivities = upcomingActivities.filter(activity => {
+          const startDate = new Date(activity.start_date);
+          return startDate > new Date();
+        });
+
+        let content = '';
+        if (futureActivities.length === 0) {
+          content = '<div style="text-align: center; padding: 10px; color: #888;">Gelecek etkinlik bulunmuyor.</div>';
+        } else {
+          content = `
+            <div style="min-width: 250px; max-width: 350px;">
+              <h4 style="margin: 0 0 10px 0; color: #f59e0b; font-size: 14px;">📅 Gelecek Etkinlikler (${futureActivities.length})</h4>
+              <div style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+          `;
+
+          futureActivities.forEach((activity) => {
+            const startDate = new Date(activity.start_date);
+            const endDate = new Date(activity.end_date);
+            const formattedStart = startDate.toLocaleString('tr-TR', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            const formattedEnd = endDate.toLocaleString('tr-TR', {
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+
+            content += `
+              <div style="
+                background: rgba(245, 158, 11, 0.1);
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 8px;
+              ">
+                <div style="font-weight: bold; color: #f59e0b; margin-bottom: 6px; font-size: 13px;">
+                  ${activity.title || 'Etkinlik'}
+                </div>
+                ${activity.description ? `
+                  <div style="color: #ccc; font-size: 11px; margin-bottom: 6px;">
+                    ${activity.description.substring(0, 100)}${activity.description.length > 100 ? '...' : ''}
+                  </div>
+                ` : ''}
+                <div style="font-size: 11px; color: #aaa;">
+                  <div>🕐 Başlangıç: ${formattedStart}</div>
+                  <div>🕐 Bitiş: ${formattedEnd}</div>
+                  ${activity.zone_name ? `<div>📍 Bölge: ${activity.zone_name}</div>` : ''}
+                </div>
+              </div>
+            `;
+          });
+
+          content += `
+              </div>
+            </div>
+          `;
+        }
+
+        marker.setPopupContent(content);
+      } catch (err) {
+        console.error('Etkinlikler yüklenemedi:', err);
+        marker.setPopupContent('<div style="text-align: center; padding: 10px; color: #dc2626;">Etkinlikler yüklenirken hata oluştu.</div>');
+      }
+    };
+
+    marker.on('popupopen', handlePopupOpen);
+
+    return () => {
+      marker.off('popupopen', handlePopupOpen);
+    };
+  }, [zoneId]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={position}
+      icon={createActivityBadgeIcon(activityCount)}
+    >
+      <Popup />
+    </Marker>
+  );
 }
 
 // --- ANA BİLEŞEN ---
@@ -484,15 +590,12 @@ const GameMap = ({ onZoneSelect }) => { // <--- Prop olarak onZoneSelect alıyor
 
       {/* Bölge Etkinlik Badge'leri */}
       {zoneActivityMarkers.map((marker) => (
-        <Marker
+        <ActivityBadgeMarker
           key={`activity-${marker.zoneId}`}
+          zoneId={marker.zoneId}
           position={marker.position}
-          icon={createActivityBadgeIcon(marker.activityCount)}
-        >
-          <Popup>
-            <strong>📅 Etkinlik Sayısı: {marker.activityCount}</strong>
-          </Popup>
-        </Marker>
+          activityCount={marker.activityCount}
+        />
       ))}
     </MapContainer>
   );
