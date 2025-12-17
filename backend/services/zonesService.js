@@ -78,3 +78,64 @@ exports.getAllZonesStats = async () => {
   const { rows } = await pool.query(query);
   return rows;
 };
+
+// Popüler bölgeler analizi (Sorgu A - İleri Seviye)
+exports.getPopularZonesAnalysis = async () => {
+  try {
+    // Önce bölge sayısını kontrol et
+    const zoneCountQuery = `SELECT COUNT(*) as count FROM lake_zones`;
+    const zoneCountResult = await pool.query(zoneCountQuery);
+    console.log(`[getPopularZonesAnalysis] Toplam bölge sayısı: ${zoneCountResult.rows[0].count}`);
+    
+    const query = `
+      SELECT 
+        lz.zone_id,
+        lz.name AS zone_name,
+        COUNT(DISTINCT a.activity_id) AS total_activities,
+        COUNT(DISTINCT p.post_id) AS total_posts,
+        COUNT(DISTINCT c.comment_id) AS total_comments,
+        COUNT(DISTINCT (l.user_id, l.post_id)) AS total_likes,
+        COUNT(DISTINCT 
+          COALESCE(p.user_id, c.user_id)
+        ) AS active_users_count,
+        CASE 
+          WHEN COUNT(DISTINCT COALESCE(p.user_id, c.user_id)) > 0 
+          THEN ROUND(
+            COUNT(DISTINCT a.activity_id)::NUMERIC / 
+            NULLIF(COUNT(DISTINCT COALESCE(p.user_id, c.user_id)), 0), 
+            2
+          )
+          ELSE 0 
+        END AS avg_activities_per_user,
+        (
+          COUNT(DISTINCT a.activity_id) * 3 +
+          COUNT(DISTINCT p.post_id) * 2 +
+          COUNT(DISTINCT c.comment_id) * 1.5 +
+          COUNT(DISTINCT (l.user_id, l.post_id)) * 1
+        ) AS popularity_score
+      FROM 
+        lake_zones lz
+        LEFT JOIN activities a ON lz.zone_id = a.zone_id
+        LEFT JOIN posts p ON lz.zone_id = p.zone_id
+        LEFT JOIN comments c ON p.post_id = c.post_id
+        LEFT JOIN likes l ON p.post_id = l.post_id
+      GROUP BY 
+        lz.zone_id, lz.name
+      ORDER BY 
+        popularity_score DESC,
+        total_activities DESC,
+        total_posts DESC
+    `;
+    const { rows } = await pool.query(query);
+    console.log(`[getPopularZonesAnalysis] ${rows.length} bölge bulundu`);
+    if (rows.length > 0) {
+      console.log(`[getPopularZonesAnalysis] İlk bölge örneği:`, rows[0]);
+    }
+    return rows;
+  } catch (error) {
+    console.error('[getPopularZonesAnalysis] Hata:', error);
+    console.error('[getPopularZonesAnalysis] Hata detayı:', error.message);
+    console.error('[getPopularZonesAnalysis] Stack:', error.stack);
+    throw error;
+  }
+};

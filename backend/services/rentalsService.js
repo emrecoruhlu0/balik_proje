@@ -870,3 +870,157 @@ exports.getRevenueAnalysis = async ({ year, month } = {}) => {
     const { rows } = await pool.query(query, params.length > 0 ? params : null);
     return rows;
 };
+
+// Aylık Kiralama Trend Analizi (Sorgu B - İleri Seviye)
+exports.getMonthlyTrendAnalysis = async () => {
+    const query = `
+        WITH monthly_revenue AS (
+            SELECT 
+                DATE_TRUNC('month', p.paid_at) AS month,
+                'Boat' AS rental_type,
+                COUNT(DISTINCT r.rental_id) AS rental_count,
+                SUM(p.amount) AS total_revenue,
+                AVG(p.amount) AS avg_revenue
+            FROM 
+                payments p
+                INNER JOIN rentals r ON p.rental_id = r.rental_id
+            WHERE 
+                p.paid_at IS NOT NULL
+            GROUP BY 
+                DATE_TRUNC('month', p.paid_at)
+            
+            UNION ALL
+            
+            SELECT 
+                DATE_TRUNC('month', p.paid_at) AS month,
+                'Equipment' AS rental_type,
+                COUNT(DISTINCT er.equipment_rental_id) AS rental_count,
+                SUM(p.amount) AS total_revenue,
+                AVG(p.amount) AS avg_revenue
+            FROM 
+                payments p
+                INNER JOIN equipment_rentals er ON p.equipment_rental_id = er.equipment_rental_id
+            WHERE 
+                p.paid_at IS NOT NULL
+            GROUP BY 
+                DATE_TRUNC('month', p.paid_at)
+        ),
+        monthly_summary AS (
+            SELECT 
+                month,
+                SUM(CASE WHEN rental_type = 'Boat' THEN rental_count ELSE 0 END) AS boat_rentals,
+                SUM(CASE WHEN rental_type = 'Equipment' THEN rental_count ELSE 0 END) AS equipment_rentals,
+                SUM(rental_count) AS total_rentals,
+                SUM(CASE WHEN rental_type = 'Boat' THEN total_revenue ELSE 0 END) AS boat_revenue,
+                SUM(CASE WHEN rental_type = 'Equipment' THEN total_revenue ELSE 0 END) AS equipment_revenue,
+                SUM(total_revenue) AS total_revenue,
+                AVG(CASE WHEN rental_type = 'Boat' THEN avg_revenue ELSE NULL END) AS avg_boat_revenue,
+                AVG(CASE WHEN rental_type = 'Equipment' THEN avg_revenue ELSE NULL END) AS avg_equipment_revenue
+            FROM 
+                monthly_revenue
+            GROUP BY 
+                month
+        ),
+        monthly_with_previous AS (
+            SELECT 
+                month,
+                boat_rentals,
+                equipment_rentals,
+                total_rentals,
+                boat_revenue,
+                equipment_revenue,
+                total_revenue,
+                avg_boat_revenue,
+                avg_equipment_revenue,
+                LAG(total_revenue) OVER (ORDER BY month) AS previous_month_revenue,
+                LAG(total_rentals) OVER (ORDER BY month) AS previous_month_rentals
+            FROM 
+                monthly_summary
+        ),
+        daily_peak AS (
+            SELECT 
+                DATE_TRUNC('month', p.paid_at) AS month,
+                DATE_TRUNC('day', p.paid_at) AS peak_day,
+                COUNT(*) AS daily_rentals,
+                ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', p.paid_at) ORDER BY COUNT(*) DESC) AS rn
+            FROM 
+                payments p
+                INNER JOIN rentals r ON p.rental_id = r.rental_id
+            WHERE 
+                p.paid_at IS NOT NULL
+            GROUP BY 
+                DATE_TRUNC('month', p.paid_at), DATE_TRUNC('day', p.paid_at)
+            
+            UNION ALL
+            
+            SELECT 
+                DATE_TRUNC('month', p.paid_at) AS month,
+                DATE_TRUNC('day', p.paid_at) AS peak_day,
+                COUNT(*) AS daily_rentals,
+                ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', p.paid_at) ORDER BY COUNT(*) DESC) AS rn
+            FROM 
+                payments p
+                INNER JOIN equipment_rentals er ON p.equipment_rental_id = er.equipment_rental_id
+            WHERE 
+                p.paid_at IS NOT NULL
+            GROUP BY 
+                DATE_TRUNC('month', p.paid_at), DATE_TRUNC('day', p.paid_at)
+        )
+        SELECT 
+            TO_CHAR(mwp.month, 'YYYY-MM') AS month_year,
+            TO_CHAR(mwp.month, 'Month YYYY') AS month_name,
+            mwp.boat_rentals,
+            mwp.equipment_rentals,
+            mwp.total_rentals,
+            ROUND(mwp.boat_revenue::NUMERIC, 2) AS boat_revenue,
+            ROUND(mwp.equipment_revenue::NUMERIC, 2) AS equipment_revenue,
+            ROUND(mwp.total_revenue::NUMERIC, 2) AS total_revenue,
+            ROUND(mwp.avg_boat_revenue::NUMERIC, 2) AS avg_boat_revenue,
+            ROUND(mwp.avg_equipment_revenue::NUMERIC, 2) AS avg_equipment_revenue,
+            CASE 
+                WHEN mwp.previous_month_revenue IS NOT NULL AND mwp.previous_month_revenue > 0
+                THEN ROUND(
+                    ((mwp.total_revenue - mwp.previous_month_revenue) / mwp.previous_month_revenue * 100)::NUMERIC, 
+                    2
+                )
+                ELSE NULL
+            END AS revenue_change_percent,
+            CASE 
+                WHEN mwp.previous_month_rentals IS NOT NULL AND mwp.previous_month_rentals > 0
+                THEN ROUND(
+                    ((mwp.total_rentals - mwp.previous_month_rentals)::NUMERIC / mwp.previous_month_rentals * 100), 
+                    2
+                )
+                ELSE NULL
+            END AS rental_change_percent,
+            TO_CHAR(dp.peak_day, 'YYYY-MM-DD') AS peak_day,
+            dp.daily_rentals AS peak_day_rentals,
+            CASE 
+                WHEN mwp.previous_month_revenue IS NOT NULL THEN
+                    CASE 
+                        WHEN mwp.total_revenue > mwp.previous_month_revenue THEN '📈 Artış'
+                        WHEN mwp.total_revenue < mwp.previous_month_revenue THEN '📉 Azalış'
+                        ELSE '➡️ Sabit'
+                    END
+                ELSE '🆕 Yeni'
+            END AS trend
+        FROM 
+            monthly_with_previous mwp
+            LEFT JOIN (
+                SELECT 
+                    month,
+                    peak_day,
+                    SUM(daily_rentals) AS daily_rentals
+                FROM 
+                    daily_peak
+                WHERE 
+                    rn = 1
+                GROUP BY 
+                    month, peak_day
+            ) dp ON mwp.month = dp.month
+        ORDER BY 
+            mwp.month DESC
+    `;
+    const { rows } = await pool.query(query);
+    return rows;
+};

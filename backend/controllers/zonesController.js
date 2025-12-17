@@ -28,3 +28,9 @@ exports.getAllZonesStats = asyncWrapper(async (req, res) => {
   const stats = await zonesService.getAllZonesStats();
   res.json(stats);
 });
+
+// Popüler bölgeler analizi (Sorgu A - İleri Seviye)
+exports.getPopularZonesAnalysis = asyncWrapper(async (req, res) => {
+  const analysis = await zonesService.getPopularZonesAnalysis();
+  res.json(analysis);
+});

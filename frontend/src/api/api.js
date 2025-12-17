@@ -94,6 +94,14 @@ export const fetchAllZonesStats = async () => {
   return handleResponse(response);
 };
 
+// Popüler bölgeler analizi (Sorgu A)
+export const fetchPopularZonesAnalysis = async () => {
+  const response = await fetch(`${BASE_URL}/zones/popular/analysis`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(response);
+};
+
 export const fetchHotspots = async () => {
   const response = await fetch(`${BASE_URL}/hotspots`);
   return handleResponse(response);
@@ -306,6 +314,14 @@ export const fetchRevenueAnalysis = async ({ year, month } = {}) => {
   
   const url = `${BASE_URL}/rentals/admin/revenue-analysis${params.toString() ? '?' + params.toString() : ''}`;
   const response = await fetch(url, {
+    headers: authHeaders(),
+  });
+  return handleResponse(response);
+};
+
+// Aylık trend analizi (Sorgu B - Admin)
+export const fetchMonthlyTrendAnalysis = async () => {
+  const response = await fetch(`${BASE_URL}/rentals/admin/trend-analysis`, {
     headers: authHeaders(),
   });
   return handleResponse(response);

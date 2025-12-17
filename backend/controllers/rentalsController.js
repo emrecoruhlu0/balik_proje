@@ -139,3 +139,9 @@ exports.getRevenueAnalysis = asyncWrapper(async (req, res) => {
     const analysis = await rentalsService.getRevenueAnalysis(params);
     res.json(analysis);
 });
+
+// Admin: Aylık Kiralama Trend Analizi (Sorgu B - İleri Seviye)
+exports.getMonthlyTrendAnalysis = asyncWrapper(async (req, res) => {
+    const analysis = await rentalsService.getMonthlyTrendAnalysis();
+    res.json(analysis);
+});

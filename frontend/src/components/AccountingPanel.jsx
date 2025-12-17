@@ -1,11 +1,11 @@
 // frontend/src/components/AccountingPanel.jsx
 import React, { useState, useEffect } from 'react';
-import { fetchMonthlyRevenue, fetchRevenueAnalysis } from '../api/api';
+import { fetchMonthlyRevenue, fetchRevenueAnalysis, fetchMonthlyTrendAnalysis } from '../api/api';
 import toast from 'react-hot-toast';
 
 const AccountingPanel = ({ onClose }) => {
   const currentDate = new Date();
-  const [activeTab, setActiveTab] = useState('monthly'); // 'monthly' veya 'analysis'
+  const [activeTab, setActiveTab] = useState('monthly'); // 'monthly', 'analysis', 'trend'
   const [analysisSubTab, setAnalysisSubTab] = useState('all'); // 'all', 'boat', 'equipment'
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
@@ -14,8 +14,10 @@ const AccountingPanel = ({ onClose }) => {
   const [useDateFilter, setUseDateFilter] = useState(false); // Tarih filtresi kullanılsın mı?
   const [revenue, setRevenue] = useState(null);
   const [revenueAnalysis, setRevenueAnalysis] = useState(null);
+  const [trendAnalysis, setTrendAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Yıl seçenekleri: son 2 yıl + mevcut yıl
@@ -39,7 +41,7 @@ const AccountingPanel = ({ onClose }) => {
     { value: 12, label: 'Aralık' }
   ];
 
-  const loadRevenue = async () => {
+  const loadRevenue = async ({ notify = false } = {}) => {
     setLoading(true);
     setError('');
 
@@ -66,6 +68,8 @@ const AccountingPanel = ({ onClose }) => {
       if (!useDateFilter) {
         loadRevenueAnalysis();
       }
+    } else if (activeTab === 'trend') {
+      loadTrendAnalysis();
     }
   }, [activeTab]);
 
@@ -75,6 +79,21 @@ const AccountingPanel = ({ onClose }) => {
       loadRevenueAnalysis();
     }
   }, [analysisYear, analysisMonth, useDateFilter]);
+
+  const loadTrendAnalysis = async () => {
+    setTrendLoading(true);
+    setError('');
+    
+    try {
+      const data = await fetchMonthlyTrendAnalysis();
+      setTrendAnalysis(data);
+    } catch (err) {
+      setError(err.message || 'Trend analizi yüklenemedi');
+      setTrendAnalysis(null);
+    } finally {
+      setTrendLoading(false);
+    }
+  };
 
   // Analysis tab değiştiğinde subtab'ı sıfırla
   useEffect(() => {
@@ -192,6 +211,17 @@ const AccountingPanel = ({ onClose }) => {
             }}
           >
             Gelir Analizi
+          </button>
+          <button
+            onClick={() => setActiveTab('trend')}
+            style={{
+              ...buttonStyle,
+              background: activeTab === 'trend' ? '#00ffff' : '#333',
+              color: activeTab === 'trend' ? '#00111f' : '#fff',
+              flex: 1
+            }}
+          >
+            Trend Analizi
           </button>
         </div>
 
@@ -314,6 +344,76 @@ const AccountingPanel = ({ onClose }) => {
                 </div>
               ) : (
                 <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>Veri bulunamadı.</p>
+              )}
+            </>
+          ) : activeTab === 'trend' ? (
+            <>
+              {trendLoading && !trendAnalysis ? (
+                <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>Yükleniyor...</p>
+              ) : trendAnalysis && trendAnalysis.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  {trendAnalysis.map((month, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        background: 'rgba(0, 255, 255, 0.1)',
+                        border: '1px solid rgba(0, 255, 255, 0.3)',
+                        borderRadius: 8,
+                        padding: 15
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3 style={{ color: '#00ffff', margin: 0, fontSize: '1rem' }}>{month.month_name}</h3>
+                        <div style={{ 
+                          fontSize: '0.85rem',
+                          color: month.trend === '📈 Artış' ? '#22c55e' : month.trend === '📉 Azalış' ? '#ef4444' : '#888',
+                          fontWeight: 'bold'
+                        }}>
+                          {month.trend}
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px', fontSize: '0.85rem' }}>
+                        <div>
+                          <span style={{ color: '#ccc' }}>Tekne Kiralamaları: </span>
+                          <span style={{ color: '#fff', fontWeight: 'bold' }}>{month.boat_rentals || 0}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#ccc' }}>Ekipman Kiralamaları: </span>
+                          <span style={{ color: '#fff', fontWeight: 'bold' }}>{month.equipment_rentals || 0}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#ccc' }}>Toplam Kiralama: </span>
+                          <span style={{ color: '#fff', fontWeight: 'bold' }}>{month.total_rentals || 0}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#ccc' }}>Toplam Gelir: </span>
+                          <span style={{ color: '#00ffff', fontWeight: 'bold' }}>
+                            {parseFloat(month.total_revenue || 0).toFixed(2)} ₺
+                          </span>
+                        </div>
+                      </div>
+
+                      {month.revenue_change_percent !== null && (
+                        <div style={{ 
+                          fontSize: '0.85rem',
+                          color: month.revenue_change_percent > 0 ? '#22c55e' : month.revenue_change_percent < 0 ? '#ef4444' : '#888',
+                          marginTop: '8px'
+                        }}>
+                          Gelir Değişimi: {month.revenue_change_percent > 0 ? '+' : ''}{month.revenue_change_percent}%
+                        </div>
+                      )}
+
+                      {month.peak_day && (
+                        <div style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '8px' }}>
+                          En Yoğun Gün: {new Date(month.peak_day).toLocaleDateString('tr-TR')} ({month.peak_day_rentals} kiralama)
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>Trend analizi verisi bulunamadı.</p>
               )}
             </>
           ) : (
