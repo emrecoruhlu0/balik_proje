@@ -1215,23 +1215,39 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
 
       {/* Forum İstatistikleri */}
       {userForumStats && (
-        <>
-          <h4 style={{ color: '#00ffff', margin: '15px 0 0 0' }}>💬 Forum İstatistikleri</h4>
-          <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: 6, padding: 12 }}>
-            <p style={{ margin: '4px 0' }}>
-              <strong>Post Sayısı:</strong> {userForumStats.post_count || 0}
-            </p>
-            <p style={{ margin: '4px 0' }}>
-              <strong>Yorum Sayısı:</strong> {userForumStats.comment_count || 0}
-            </p>
-            <p style={{ margin: '4px 0' }}>
-              <strong>Beğenilen Postlar:</strong> {userForumStats.liked_post_count || 0}
-            </p>
-            <p style={{ margin: '4px 0' }}>
-              <strong>Toplam Fotoğraf:</strong> {userForumStats.total_photos || 0}
-            </p>
-          </div>
-        </>
+        <div style={{ 
+          background: 'rgba(34, 197, 94, 0.1)', 
+          border: '1px solid rgba(34, 197, 94, 0.3)', 
+          borderRadius: 6, 
+          padding: 12, 
+          marginTop: '15px'
+        }}>
+          <h4 style={{ color: '#4ade80', margin: '0 0 10px 0', fontSize: '0.9rem' }}>💬 Forum İstatistikleriniz</h4>
+          {accountLoading ? (
+            <p style={{ color: '#888', fontSize: '0.85rem' }}>Yükleniyor...</p>
+          ) : userForumStats ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem' }}>
+              <div>
+                <span style={{ color: '#ccc' }}>Post Sayısı: </span>
+                <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{userForumStats.post_count || 0}</span>
+              </div>
+              <div>
+                <span style={{ color: '#ccc' }}>Yorum Sayısı: </span>
+                <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{userForumStats.comment_count || 0}</span>
+              </div>
+              <div>
+                <span style={{ color: '#ccc' }}>Beğenilen Postlar: </span>
+                <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{userForumStats.liked_post_count || 0}</span>
+              </div>
+              <div>
+                <span style={{ color: '#ccc' }}>Toplam Fotoğraf: </span>
+                <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{userForumStats.total_photos || 0}</span>
+              </div>
+            </div>
+          ) : (
+            <p style={{ color: '#888', fontSize: '0.85rem' }}>İstatistikler yüklenemedi.</p>
+          )}
+        </div>
       )}
 
       <button
