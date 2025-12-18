@@ -1,47 +1,54 @@
 .sidebar {
   width: 340px;
-  background: #020817;
-  color: white;
+  background: var(--bg-dark);
+  color: var(--text-primary);
   padding: 14px 16px;
-  border-left: 2px solid #00ffff;
+  border-left: 2px solid var(--color-primary);
   display: flex;
   flex-direction: column;
-  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg), -5px 0 20px rgba(6, 182, 212, 0.1);
   height: 100%;
   overflow: hidden;
+  transition: all var(--transition-base);
 }
 
 .tabButtons {
   display: flex;
   gap: 4px;
   margin-bottom: 12px;
-  border-bottom: 1px solid #123;
-  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
   flex-shrink: 0;
 }
 
 .tabButton {
   flex: 1;
-  padding: 8px 6px;
+  padding: 10px 8px;
   font-size: 0.8rem;
   border: none;
   cursor: pointer;
   background: transparent;
-  color: #9aa4b1;
-  font-weight: normal;
-  border-bottom: 1px solid #123;
-  transition: all 0.2s ease;
+  color: var(--text-muted);
+  font-weight: var(--font-medium);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-base);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
 }
 
 .tabButton:hover {
-  color: #fff;
+  color: var(--color-primary);
+  background: rgba(6, 182, 212, 0.05);
 }
 
 .tabButtonActive {
-  background: #00ffff;
-  color: #00111f;
-  font-weight: bold;
-  border-bottom: 2px solid #00ffff;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(100, 116, 139, 0.05) 100%);
+  color: var(--color-primary);
+  font-weight: var(--font-bold);
+  border-bottom: 2px solid var(--color-primary);
+  box-shadow: 0 4px 8px rgba(6, 182, 212, 0.15);
 }
 
 .sidebarContent {
