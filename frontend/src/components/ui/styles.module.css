@@ -1,57 +1,73 @@
-/* Button Styles */
+/* Button Styles - Modern & Polished */
 .button {
-  padding: 10px 20px;
+  padding: 10px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-weight: bold;
+  font-weight: var(--font-medium);
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  font-family: var(--font-family);
+  box-shadow: var(--shadow-sm);
 }
 
 .button-primary {
-  background: var(--color-primary);
-  color: var(--color-primary-dark);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
 }
 
 .button-primary:hover:not(:disabled) {
-  background: #00e6e6;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  box-shadow: var(--shadow-glow-sm);
+  transform: translateY(-2px);
+}
+
+.button-primary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .button-secondary {
-  background: #333;
-  color: #fff;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .button-secondary:hover:not(:disabled) {
-  background: #444;
+  background: var(--border-color);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .button-danger {
-  background: var(--color-danger);
+  background: linear-gradient(135deg, var(--color-danger) 0%, #dc2626 100%);
   color: white;
 }
 
 .button-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: linear-gradient(135deg, #f87171 0%, var(--color-danger) 100%);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
 }
 
 .button-success {
-  background: var(--color-success);
+  background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
   color: white;
 }
 
 .button-success:hover:not(:disabled) {
-  background: #16a34a;
+  background: linear-gradient(135deg, #34d399 0%, var(--color-success) 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
 }
 
 .button-disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Input Styles */
