@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from '../../ui/Card';
 import ActiveRentalCard from '../rental/ActiveRentalCard';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const RentalsTab = ({ myActiveRentals, calculateCurrentCost }) => {
@@ -65,7 +66,7 @@ const RentalsTab = ({ myActiveRentals, calculateCurrentCost }) => {
           <div className={styles.totalContent}>
             <strong className={styles.totalLabel}>Toplam Anlık Maliyet:</strong>
             <strong className={styles.totalAmount}>
-              {(totalBoatCost + totalEquipmentCost).toFixed(2)} ₺
+              {formatCurrency(totalBoatCost + totalEquipmentCost)} ₺
             </strong>
           </div>
         </Card>
@@ -79,4 +80,8 @@ const RentalsTab = ({ myActiveRentals, calculateCurrentCost }) => {
 };
 
 export default RentalsTab;
+
+
+
+
 

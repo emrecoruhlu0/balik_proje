@@ -2,6 +2,7 @@ import React from 'react';
 import Card from '../../ui/Card';
 import Badge from '../../ui/Badge';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const RentalList = ({ rentals, loading }) => {
@@ -39,7 +40,7 @@ const RentalList = ({ rentals, loading }) => {
               </p>
             </div>
             <div className={styles.rentalPrice}>
-              {rental.total_price.toFixed(2)} ₺
+              {formatCurrency(rental.total_price)} ₺
             </div>
           </div>
         </Card>
@@ -49,4 +50,8 @@ const RentalList = ({ rentals, loading }) => {
 };
 
 export default RentalList;
+
+
+
+
 

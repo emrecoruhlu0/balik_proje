@@ -2,6 +2,7 @@ import React from 'react';
 import { isAdmin } from '../../../utils/admin';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const ProfileTab = ({ userInfo, userStats, userForumStats, currentUser, onLogout, loading }) => {
@@ -31,7 +32,7 @@ const ProfileTab = ({ userInfo, userStats, userForumStats, currentUser, onLogout
               <strong>Ekipman Kiralamaları:</strong> {userStats.equipment_rental_count || 0}
             </p>
             <p className={styles.totalSpent}>
-              <strong>Toplam Harcama:</strong> {parseFloat(userStats.total_spent || 0).toFixed(2)} ₺
+              <strong>Toplam Harcama:</strong> {formatCurrency(userStats.total_spent || 0)} ₺
             </p>
           </Card>
         </>
@@ -76,4 +77,8 @@ const ProfileTab = ({ userInfo, userStats, userForumStats, currentUser, onLogout
 };
 
 export default ProfileTab;
+
+
+
+
 

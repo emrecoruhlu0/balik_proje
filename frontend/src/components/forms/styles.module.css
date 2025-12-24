@@ -99,3 +99,37 @@
   text-decoration: underline;
 }
 
+/* File Upload Styles */
+.fileUploadSection {
+  margin-bottom: 12px;
+}
+
+.fileLabel {
+  display: block;
+  margin-bottom: 5px;
+  color: #aaa;
+  font-size: 0.8rem;
+}
+
+.fileInput {
+  width: 100%;
+  color: #ccc;
+  font-size: 0.8rem;
+}
+
+.previewSection {
+  margin-top: 5px;
+}
+
+.previewText {
+  color: #00ffff;
+  font-size: 0.7rem;
+  margin: 0;
+}
+
+.previewImage {
+  height: 50px;
+  margin-top: 5px;
+  border-radius: 4px;
+}
+

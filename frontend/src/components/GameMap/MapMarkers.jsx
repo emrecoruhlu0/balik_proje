@@ -299,9 +299,30 @@ const ActivityBadgePopupContent = ({ zoneId }) => {
                   {statusBadge.text}
                 </span>
               </div>
+              {activity.photos && activity.photos.length > 0 && activity.photos[0] && (
+                <div style={{
+                  marginBottom: '6px',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  maxHeight: '120px'
+                }}>
+                  <img
+                    src={activity.photos[0]}
+                    alt={activity.title}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '120px',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+              )}
               {activity.description && (
                 <div style={{
-                  color: '#ccc',
+                  color: '#333',
                   fontSize: '11px',
                   marginBottom: '6px'
                 }}>
@@ -338,4 +359,8 @@ export const ActivityBadgeMarker = ({ zoneId, position, activityCount }) => {
 // Zone Popup Handler Component
 // Bu bileşen artık MapMarkers.jsx dosyasında değildir
 // Popup işlemi GameMap/index.jsx dosyasındaki onEachFeature callback'inde gerçekleştirilmektedir
+
+
+
+
 

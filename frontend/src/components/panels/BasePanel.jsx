@@ -8,7 +8,9 @@ const BasePanel = ({
   title,
   children,
   maxWidth = '800px',
-  className = ''
+  className = '',
+  fixedSize = false,
+  noScroll = false
 }) => {
   return (
     <Modal
@@ -17,6 +19,8 @@ const BasePanel = ({
       title={title}
       maxWidth={maxWidth}
       className={className}
+      fixedSize={fixedSize}
+      noScroll={noScroll}
     >
       <div className={styles.panelContent}>
         {children}
@@ -26,4 +30,8 @@ const BasePanel = ({
 };
 
 export default BasePanel;
+
+
+
+
 

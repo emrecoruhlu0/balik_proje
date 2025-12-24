@@ -5,6 +5,7 @@ import Button from '../../ui/Button';
 import Select from '../../ui/Select';
 import Card from '../../ui/Card';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const MonthlyTab = ({ onClose }) => {
@@ -90,7 +91,7 @@ const MonthlyTab = ({ onClose }) => {
         </div>
       </form>
 
-      <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
+      <div className={styles.monthlyContent}>
         {error && (
           <div className={styles.errorMessage}>
             {error}
@@ -109,7 +110,7 @@ const MonthlyTab = ({ onClose }) => {
                   <p className={styles.cardText}>Toplam Kiralama: {revenue.boats.count}</p>
                 </div>
                 <div className={styles.revenueAmount}>
-                  {revenue.boats.total_revenue.toFixed(2)} ₺
+                  {formatCurrency(revenue.boats.total_revenue)} ₺
                 </div>
               </div>
             </Card>
@@ -122,7 +123,7 @@ const MonthlyTab = ({ onClose }) => {
                   <p className={styles.cardText}>Toplam Kiralama: {revenue.equipment.count}</p>
                 </div>
                 <div className={styles.revenueAmount}>
-                  {revenue.equipment.total_revenue.toFixed(2)} ₺
+                  {formatCurrency(revenue.equipment.total_revenue)} ₺
                 </div>
               </div>
             </Card>
@@ -131,10 +132,10 @@ const MonthlyTab = ({ onClose }) => {
             <Card className={styles.totalCard}>
               <h3 className={styles.totalTitle}>💰 Genel Toplam</h3>
               <div className={styles.totalAmount}>
-                {revenue.total_revenue.toFixed(2)} ₺
+                {formatCurrency(revenue.total_revenue)} ₺
               </div>
               <p className={styles.totalDate}>
-                {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                {months.find(m => m.value === revenue.month)?.label} {revenue.year}
               </p>
             </Card>
           </div>
@@ -147,4 +148,8 @@ const MonthlyTab = ({ onClose }) => {
 };
 
 export default MonthlyTab;
+
+
+
+
 

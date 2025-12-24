@@ -12,3 +12,7 @@ const ForumTab = ({ selectedZone, currentUser }) => {
 
 export default ForumTab;
 
+
+
+
+

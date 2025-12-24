@@ -92,49 +92,94 @@ const PostCreateModal = ({ isOpen, onClose, selectedZone, zonesList, onPostCreat
   }).filter(Boolean);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Yeni Paylaşım" maxWidth="400px">
+    <Modal isOpen={isOpen} onClose={onClose} title="✨ Yeni Paylaşım Oluştur" maxWidth="700px" className={styles.postCreateModal}>
       <form onSubmit={handleSubmit} className={styles.postForm}>
-        <Input
-          type="text"
-          placeholder="Başlık"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <Textarea
-          placeholder="İçerik"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-          rows={4}
-        />
-        <div className={styles.fileUploadSection}>
-          <label className={styles.fileLabel}>Fotoğraf Yükle (Opsiyonel - Max 5MB)</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className={styles.fileInput}
+        <div className={styles.formSection}>
+          <label className={styles.sectionLabel}>
+            <span className={styles.labelIcon}>📝</span>
+            Başlık
+          </label>
+          <Input
+            type="text"
+            placeholder="Paylaşımınız için bir başlık girin..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className={styles.titleInput}
           />
-          {photoUrl && (
-            <div className={styles.previewSection}>
-              <p className={styles.previewText}>Resim seçildi! (Önizleme)</p>
-              <img src={photoUrl} alt="Önizleme" className={styles.previewImage} />
-            </div>
-          )}
         </div>
-        <Select
-          label="Konum"
-          value={zoneId}
-          onChange={(e) => setZoneId(e.target.value)}
-          options={[{ value: '', label: '🌐 Genel (Konumsuz)' }, ...zoneOptions]}
-        />
+
+        <div className={styles.formSection}>
+          <label className={styles.sectionLabel}>
+            <span className={styles.labelIcon}>💬</span>
+            İçerik
+          </label>
+          <Textarea
+            placeholder="Paylaşmak istediğiniz içeriği buraya yazın..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+            rows={6}
+            className={styles.contentTextarea}
+          />
+        </div>
+
+        <div className={styles.formSection}>
+          <label className={styles.sectionLabel}>
+            <span className={styles.labelIcon}>📷</span>
+            Fotoğraf (Opsiyonel)
+          </label>
+          <div className={styles.fileUploadSection}>
+            <label className={styles.fileUploadLabel}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+              />
+              <span className={styles.fileUploadButton}>
+                {photoUrl ? '🔄 Fotoğraf Değiştir' : '📤 Fotoğraf Seç (Max 5MB)'}
+              </span>
+            </label>
+            {photoUrl && (
+              <div className={styles.previewSection}>
+                <div className={styles.previewHeader}>
+                  <span className={styles.previewText}>✅ Fotoğraf Önizleme</span>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoUrl('')}
+                    className={styles.removeImageButton}
+                  >
+                    ✕ Kaldır
+                  </button>
+                </div>
+                <div className={styles.previewImageContainer}>
+                  <img src={photoUrl} alt="Önizleme" className={styles.previewImage} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <label className={styles.sectionLabel}>
+            <span className={styles.labelIcon}>📍</span>
+            Konum
+          </label>
+          <Select
+            value={zoneId}
+            onChange={(e) => setZoneId(e.target.value)}
+            options={[{ value: '', label: '🌐 Genel (Konumsuz)' }, ...zoneOptions]}
+            className={styles.locationSelect}
+          />
+        </div>
+
         <div className={styles.modalActions}>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={loading} className={styles.cancelButton}>
             İptal
           </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Paylaşılıyor...' : 'Paylaş'}
+          <Button type="submit" variant="primary" disabled={loading} className={styles.submitButton}>
+            {loading ? '⏳ Paylaşılıyor...' : '✨ Paylaş'}
           </Button>
         </div>
       </form>
@@ -143,4 +188,8 @@ const PostCreateModal = ({ isOpen, onClose, selectedZone, zonesList, onPostCreat
 };
 
 export default PostCreateModal;
+
+
+
+
 

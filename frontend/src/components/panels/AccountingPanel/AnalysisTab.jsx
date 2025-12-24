@@ -4,6 +4,7 @@ import Button from '../../ui/Button';
 import Select from '../../ui/Select';
 import Card from '../../ui/Card';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const AnalysisTab = () => {
@@ -81,6 +82,15 @@ const AnalysisTab = () => {
   const totalRevenue = filteredData.reduce((sum, item) => sum + parseFloat(item.total_revenue || 0), 0);
   const totalRentals = filteredData.reduce((sum, item) => sum + parseInt(item.rental_count || 0, 10), 0);
 
+  // Ay filtresi kullanıldığında en çok kazanç elde edilen ürünü bul
+  const topProduct = useDateFilter && filteredData.length > 0
+    ? filteredData.reduce((max, item) => {
+        const currentRevenue = parseFloat(item.total_revenue || 0);
+        const maxRevenue = parseFloat(max.total_revenue || 0);
+        return currentRevenue > maxRevenue ? item : max;
+      })
+    : null;
+
   const getSubTabColor = () => {
     if (analysisSubTab === 'boat') return { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.5)', text: '#60a5fa' };
     if (analysisSubTab === 'equipment') return { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.5)', text: '#4ade80' };
@@ -149,83 +159,104 @@ const AnalysisTab = () => {
         </Button>
       </div>
 
-      <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
-        {loading && !revenueAnalysis ? (
+      {loading && !revenueAnalysis ? (
+        <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
           <LoadingSpinner text="Yükleniyor..." />
-        ) : filteredData.length === 0 ? (
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
           <p className={styles.emptyMessage}>
             {analysisSubTab === 'boat' ? 'Tekne' : analysisSubTab === 'equipment' ? 'Ekipman' : ''} gelir analizi verisi bulunamadı.
           </p>
-        ) : (
-          <div className={styles.analysisContent}>
-            {/* Özet Bilgi */}
-            <Card
-              className={styles.summaryCard}
-              style={{
-                background: subTabColor.bg,
-                border: `2px solid ${subTabColor.border}`
-              }}
-            >
-              <h3 className={styles.summaryTitle} style={{ color: subTabColor.text }}>
-                {analysisSubTab === 'boat' ? '🛶 Tekne' : analysisSubTab === 'equipment' ? '🎣 Ekipman' : '💰'} Toplam
-              </h3>
-              <div className={styles.summaryAmount} style={{ color: subTabColor.text }}>
-                {totalRevenue.toFixed(2)} ₺
-              </div>
-              <p className={styles.summaryText}>
-                Toplam {totalRentals} kiralama
-              </p>
-            </Card>
+        </div>
+      ) : (
+        <>
+          {/* Özet Bilgi - Sabit */}
+          <Card
+            className={styles.summaryCard}
+            style={{
+              background: subTabColor.bg,
+              border: `2px solid ${subTabColor.border}`,
+              flexShrink: 0,
+              marginBottom: '15px'
+            }}
+          >
+            <h3 className={styles.summaryTitle} style={{ color: subTabColor.text }}>
+              {analysisSubTab === 'boat' ? '🛶 Tekne' : analysisSubTab === 'equipment' ? '🎣 Ekipman' : '💰'} Toplam
+            </h3>
+            <div className={styles.summaryAmount} style={{ color: subTabColor.text }}>
+              {formatCurrency(totalRevenue)} ₺
+            </div>
+            <p className={styles.summaryText}>
+              Toplam {totalRentals} kiralama
+            </p>
+          </Card>
 
-            {/* Detaylı Liste */}
-            {filteredData.map((item, index) => (
-              <Card
-                key={index}
-                variant={item.rental_type === 'Boat' ? 'boat' : 'equipment'}
-              >
-                <div className={styles.analysisItemHeader}>
-                  <div>
-                    <h4 className={styles.analysisItemTitle}>
-                      {item.rental_type === 'Boat' ? '🛶' : '🎣'} {item.item_name}
-                    </h4>
-                    <p className={styles.analysisItemId}>ID: {item.item_id}</p>
+          {/* Detaylı Liste - Kaydırılabilir */}
+          <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
+            <div className={styles.analysisList}>
+              {filteredData.map((item, index) => {
+                const isTopProduct = useDateFilter && topProduct && 
+                  item.item_id === topProduct.item_id && 
+                  item.rental_type === topProduct.rental_type;
+                
+                return (
+                <Card
+                  key={index}
+                  variant={item.rental_type === 'Boat' ? 'boat' : 'equipment'}
+                  className={isTopProduct ? styles.monthlyTopProduct : ''}
+                >
+                  <div className={styles.analysisItemHeader}>
+                    <div>
+                      <h4 className={styles.analysisItemTitle}>
+                        {item.rental_type === 'Boat' ? '🛶' : '🎣'} {item.item_name} <span className={styles.analysisItemId}>(ID: {item.item_id})</span>
+                        {isTopProduct && (
+                          <span className={styles.monthlyTopBadge}>⭐ Ayın Ürünü</span>
+                        )}
+                      </h4>
+                    </div>
+                    <div className={styles.analysisItemRevenue}>
+                      {formatCurrency(item.total_revenue || 0)} ₺
+                    </div>
                   </div>
-                  <div className={styles.analysisItemRevenue}>
-                    {parseFloat(item.total_revenue || 0).toFixed(2)} ₺
+                  <div className={styles.analysisItemGrid}>
+                    <div>
+                      <span className={styles.analysisLabel}>Kiralama Sayısı: </span>
+                      <span className={styles.analysisValue}>{item.rental_count || 0}</span>
+                    </div>
+                    <div>
+                      <span className={styles.analysisLabel}>Ort. Süre: </span>
+                      <span className={styles.analysisValue}>
+                        {item.avg_rental_hours ? parseFloat(item.avg_rental_hours).toFixed(1) : '0'} saat
+                      </span>
+                    </div>
+                    <div>
+                      <span className={styles.analysisLabel}>Ort. Ödeme: </span>
+                      <span className={styles.analysisValue}>
+                        {formatCurrency(item.avg_payment || 0)} ₺
+                      </span>
+                    </div>
+                    <div>
+                      <span className={styles.analysisLabel}>Toplam Gelir: </span>
+                      <span className={styles.analysisValue}>
+                        {formatCurrency(item.total_revenue || 0)} ₺
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className={styles.analysisItemGrid}>
-                  <div>
-                    <span className={styles.analysisLabel}>Kiralama Sayısı: </span>
-                    <span className={styles.analysisValue}>{item.rental_count || 0}</span>
-                  </div>
-                  <div>
-                    <span className={styles.analysisLabel}>Ort. Süre: </span>
-                    <span className={styles.analysisValue}>
-                      {item.avg_rental_hours ? parseFloat(item.avg_rental_hours).toFixed(1) : '0'} saat
-                    </span>
-                  </div>
-                  <div>
-                    <span className={styles.analysisLabel}>Ort. Ödeme: </span>
-                    <span className={styles.analysisValue}>
-                      {item.avg_payment ? parseFloat(item.avg_payment).toFixed(2) : '0'} ₺
-                    </span>
-                  </div>
-                  <div>
-                    <span className={styles.analysisLabel}>Toplam Gelir: </span>
-                    <span className={styles.analysisValue}>
-                      {parseFloat(item.total_revenue || 0).toFixed(2)} ₺
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+              })}
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </>
   );
 };
 
 export default AnalysisTab;
+
+
+
+
 

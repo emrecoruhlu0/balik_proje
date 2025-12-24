@@ -143,3 +143,7 @@ const EquipmentForm = ({ item, onSuccess, onClose }) => {
 
 export default EquipmentForm;
 
+
+
+
+

@@ -20,7 +20,10 @@ const AccountingPanel = ({ onClose }) => {
       isOpen={true}
       onClose={onClose}
       title="💰 Muhasebe"
-      maxWidth="600px"
+      maxWidth="900px"
+      className={`${styles.accountingModal} accountingModal`}
+      fixedSize={true}
+      noScroll={true}
     >
       <TabContainer>
         <TabButtons
@@ -28,7 +31,7 @@ const AccountingPanel = ({ onClose }) => {
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
-        <TabContent>
+        <TabContent className={styles.accountingTabContent}>
           {activeTab === 'monthly' && <MonthlyTab onClose={onClose} />}
           {activeTab === 'analysis' && <AnalysisTab />}
           {activeTab === 'trend' && <TrendTab />}
@@ -39,4 +42,8 @@ const AccountingPanel = ({ onClose }) => {
 };
 
 export default AccountingPanel;
+
+
+
+
 

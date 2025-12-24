@@ -6,6 +6,7 @@ import EquipTab from './tabs/EquipTab';
 import ForumTab from './tabs/ForumTab';
 import AccountTab from './tabs/AccountTab';
 import AdminPanels from '../AdminPanels';
+import { formatCurrency } from '../../utils/format';
 import {
   fetchAvailableBoats,
   createBoatRental,
@@ -40,8 +41,20 @@ const TABS = {
   ACCOUNT: 'account',
 };
 
-const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
+const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout, onTabChangeRef }) => {
   const [activeTab, setActiveTab] = useState(TABS.INFO);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('sidebarWidth');
+    return saved ? parseInt(saved, 10) : 340;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Expose setActiveTab to parent via ref
+  useEffect(() => {
+    if (onTabChangeRef) {
+      onTabChangeRef.current = setActiveTab;
+    }
+  }, [onTabChangeRef]);
 
   // Boat tab state
   const [availableBoats, setAvailableBoats] = useState([]);
@@ -267,7 +280,7 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
     try {
       setActionMessage('');
       const result = await completeBoatRental(activeRental.rental_id);
-      const msg = `İade alındı. Süre: ${result.duration_hours} saat. Tutar: ${result.total_price} ₺`;
+      const msg = `İade alındı. Süre: ${result.duration_hours} saat. Tutar: ${formatCurrency(result.total_price)} ₺`;
       toast.success(msg);
       setActiveRental(null);
       setAvailableBoats(await fetchAvailableBoats());
@@ -295,7 +308,7 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
     try {
       setEquipmentActionMessage('');
       const result = await completeEquipmentRental(rentalId);
-      toast.success(`Ekipman iade edildi.\nSüre: ${result.duration_hours} saat\nToplam Tutar: ${result.total_price} ₺`);
+      toast.success(`Ekipman iade edildi.\nSüre: ${result.duration_hours} saat\nToplam Tutar: ${formatCurrency(result.total_price)} ₺`);
       setAvailableEquipment(await fetchAvailableEquipment());
       setMyRentals(await fetchMyActiveEquipment());
     } catch (err) {
@@ -308,7 +321,7 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
       setEquipmentActionMessage('');
       const result = await returnAllEquipment();
       if (result.count > 0) {
-        toast.success(`Toplu İade Başarılı!\nToplam Tutar: ${result.total_price} ₺`);
+        toast.success(`Toplu İade Başarılı!\nToplam Tutar: ${formatCurrency(result.total_price)} ₺`);
       } else {
         toast.error("İade edilecek aktif ekipman yok.");
       }
@@ -395,6 +408,37 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
     onLogout?.();
   };
 
+  // Resize handlers
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      const minWidth = 250;
+      const maxWidth = 800;
+      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setSidebarWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem('sidebarWidth', sidebarWidth.toString());
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, sidebarWidth]);
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case TABS.INFO:
@@ -469,7 +513,14 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
   };
 
   return (
-    <div className={styles.sidebar}>
+    <div className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
+      <div
+        className={styles.resizeHandle}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsResizing(true);
+        }}
+      />
       <SidebarTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -502,4 +553,8 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout }) => {
 };
 
 export default Sidebar;
+
+
+
+
 

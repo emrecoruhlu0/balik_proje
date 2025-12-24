@@ -74,11 +74,11 @@ const AccountTab = ({
   }
 
   const tabs = [];
+  tabs.push({ id: ACCOUNT_SUBTABS.PROFILE, label: 'Profil' });
   if (!isAdmin(currentUser)) {
     tabs.push({ id: ACCOUNT_SUBTABS.RENTALS, label: 'Kiralamalarım' });
   }
   tabs.push({ id: ACCOUNT_SUBTABS.POSTS, label: 'Postlarım' });
-  tabs.push({ id: ACCOUNT_SUBTABS.PROFILE, label: 'Profil' });
   if (isAdmin(currentUser)) {
     tabs.push({ id: ACCOUNT_SUBTABS.ADMIN_RENTALS, label: 'Kiralamalar Yönetimi' });
   }
@@ -90,6 +90,7 @@ const AccountTab = ({
           tabs={tabs}
           activeTab={accountSubtab}
           onTabChange={setAccountSubtab}
+          className={styles.accountTabButtons}
         />
         <TabContent>
           {accountLoading ? (
@@ -164,4 +165,8 @@ const AccountTab = ({
 };
 
 export default AccountTab;
+
+
+
+
 

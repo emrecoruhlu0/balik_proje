@@ -77,3 +77,7 @@ const BoatRentalList = ({
 
 export default BoatRentalList;
 
+
+
+
+

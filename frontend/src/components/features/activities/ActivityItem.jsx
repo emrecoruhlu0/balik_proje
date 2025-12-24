@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import ImageLightbox from '../../modals/ImageLightbox';
 import { isAdmin } from '../../../utils/admin';
 import styles from './styles.module.css';
 
@@ -12,6 +13,8 @@ const ActivityItem = ({
   onEdit,
   onDelete
 }) => {
+  const [selectedImage, setSelectedImage] = useState(null);
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR', {
@@ -56,6 +59,21 @@ const ActivityItem = ({
       <strong className={styles.activityTitle} style={{ color: style.titleColor }}>
         {activity.title}
       </strong>
+      {activity.photos && activity.photos.length > 0 && activity.photos[0] ? (
+        <div className={styles.activityImageContainer}>
+          <img
+            src={activity.photos[0]}
+            alt={activity.title}
+            onClick={() => setSelectedImage(activity.photos[0])}
+            className={styles.activityImage}
+            onError={(e) => e.target.style.display = 'none'}
+          />
+        </div>
+      ) : (
+        <div className={styles.activityImagePlaceholder}>
+          <span>📷 Fotoğraf yok</span>
+        </div>
+      )}
       {activity.description && (
         <p className={styles.activityDescription}>{activity.description}</p>
       )}
@@ -83,9 +101,18 @@ const ActivityItem = ({
           </Button>
         </div>
       )}
+      <ImageLightbox
+        isOpen={!!selectedImage}
+        onClose={() => setSelectedImage(null)}
+        imageUrl={selectedImage}
+      />
     </Card>
   );
 };
 
 export default ActivityItem;
+
+
+
+
 

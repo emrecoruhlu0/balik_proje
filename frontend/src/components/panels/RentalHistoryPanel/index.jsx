@@ -74,3 +74,7 @@ const RentalHistoryPanel = ({ onClose }) => {
 
 export default RentalHistoryPanel;
 
+
+
+
+

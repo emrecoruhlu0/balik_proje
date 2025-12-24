@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchMonthlyTrendAnalysis } from '../../../api/api';
 import Card from '../../ui/Card';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const TrendTab = () => {
@@ -34,6 +35,7 @@ const TrendTab = () => {
   }
 
   return (
+    <div className={`${styles.scrollableContent} accounting-panel-scroll`}>
     <div className={styles.trendList}>
       {trendAnalysis.map((month, index) => (
         <Card key={index} className={styles.trendCard}>
@@ -70,7 +72,7 @@ const TrendTab = () => {
             <div>
               <span className={styles.trendLabel}>Toplam Gelir: </span>
               <span className={styles.trendRevenue}>
-                {parseFloat(month.total_revenue || 0).toFixed(2)} ₺
+                {formatCurrency(month.total_revenue || 0)} ₺
               </span>
             </div>
           </div>
@@ -100,9 +102,14 @@ const TrendTab = () => {
           )}
         </Card>
       ))}
+      </div>
     </div>
   );
 };
 
 export default TrendTab;
+
+
+
+
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { fetchActiveUsers, fetchAllUsersStats, fetchAllUsersForumStats, fetchAllZonesStats, fetchPopularZonesAnalysis } from '../../../api/api';
 import BasePanel from '../BasePanel';
 import { TabContainer, TabButtons, TabContent } from '../../ui/Tab';
-import Button from '../../ui/Button';
 import LoadingSpinner from '../../ui/LoadingSpinner';
 import UsersTab from './UsersTab';
 import SpendingTab from './SpendingTab';
@@ -78,7 +77,10 @@ const AdminStatsPanel = ({ onClose }) => {
       isOpen={true}
       onClose={onClose}
       title="📊 Sistem İstatistikleri"
-      maxWidth="800px"
+      maxWidth="1000px"
+      className={`${styles.adminStatsModal} adminStatsModal`}
+      fixedSize={true}
+      noScroll={true}
     >
       {error && (
         <div className={styles.errorMessage}>
@@ -92,7 +94,7 @@ const AdminStatsPanel = ({ onClose }) => {
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
-        <TabContent>
+        <TabContent className={styles.adminStatsTabContent}>
           {loading ? (
             <LoadingSpinner text="Yükleniyor..." />
           ) : (
@@ -106,15 +108,13 @@ const AdminStatsPanel = ({ onClose }) => {
           )}
         </TabContent>
       </TabContainer>
-
-      <div className={styles.panelFooter}>
-        <Button variant="danger" onClick={onClose}>
-          Kapat
-        </Button>
-      </div>
     </BasePanel>
   );
 };
 
 export default AdminStatsPanel;
+
+
+
+
 

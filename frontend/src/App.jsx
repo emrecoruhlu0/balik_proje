@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import GameMap from './components/GameMap';
 import Sidebar from './components/Sidebar';
 import { fetchMe } from './api/api';
@@ -10,6 +10,7 @@ function App() {
 
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [currentUser, setCurrentUser] = useState(null);
+  const sidebarTabChangeRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -45,7 +46,26 @@ function App() {
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
       <div style={{ flex: 1, position: 'relative' }}>
-        <GameMap onZoneSelect={(zone) => setSelectedZone(zone)} />
+        <GameMap 
+          onZoneSelect={(zone) => setSelectedZone(zone)}
+          onOpenForumTab={(zoneProps) => {
+            // Select the zone first, then open forum tab
+            if (zoneProps && sidebarTabChangeRef.current) {
+              const zone = {
+                zone_id: zoneProps.zone_id || zoneProps.id,
+                id: zoneProps.zone_id || zoneProps.id,
+                name: zoneProps.name
+              };
+              setSelectedZone(zone);
+              // Use setTimeout to ensure zone is selected before opening forum tab
+              setTimeout(() => {
+                if (sidebarTabChangeRef.current) {
+                  sidebarTabChangeRef.current('forum');
+                }
+              }, 50);
+            }
+          }}
+        />
         {selectedZone && (
           <div style={{
             position: 'absolute',
@@ -69,6 +89,7 @@ function App() {
         currentUser={currentUser}
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
+        onTabChangeRef={sidebarTabChangeRef}
       />
     </div>
   );

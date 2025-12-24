@@ -26,3 +26,7 @@ const ForumTab = ({ allUsersForumStats }) => {
 
 export default ForumTab;
 
+
+
+
+

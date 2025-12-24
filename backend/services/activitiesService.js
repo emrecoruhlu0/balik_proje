@@ -4,16 +4,20 @@ const pool = require('../config/db');
 exports.getActivitiesByZone = async (zoneId) => {
   const query = `
     SELECT 
-      activity_id,
-      zone_id,
-      title,
-      description,
-      start_date,
-      end_date,
-      created_at
-    FROM activities
-    WHERE zone_id = $1
-    ORDER BY start_date ASC
+      a.activity_id,
+      a.zone_id,
+      a.title,
+      a.description,
+      a.start_date,
+      a.end_date,
+      a.created_at,
+      COALESCE(
+        (SELECT JSON_AGG(ph.url) FROM activity_photos ph WHERE ph.activity_id = a.activity_id),
+        '[]'::json
+      ) as photos
+    FROM activities a
+    WHERE a.zone_id = $1
+    ORDER BY a.start_date ASC
   `;
 
   const { rows } = await pool.query(query, [zoneId]);
@@ -51,7 +55,7 @@ exports.getActivitiesByZone = async (zoneId) => {
   };
 };
 
-// Tüm etkinlikleri getir (opsiyonel, şimdilik kullanmayacağız)
+// Tüm etkinlikleri getir
 exports.getAllActivities = async () => {
   const query = `
     SELECT 
@@ -62,7 +66,11 @@ exports.getAllActivities = async () => {
       a.start_date,
       a.end_date,
       a.created_at,
-      z.name as zone_name
+      z.name as zone_name,
+      COALESCE(
+        (SELECT JSON_AGG(ph.url) FROM activity_photos ph WHERE ph.activity_id = a.activity_id),
+        '[]'::json
+      ) as photos
     FROM activities a
     JOIN lake_zones z ON a.zone_id = z.zone_id
     ORDER BY a.start_date ASC
@@ -72,38 +80,82 @@ exports.getAllActivities = async () => {
   return rows;
 };
 
-// 🔹 Admin: Yeni etkinlik oluştur
-exports.createActivity = async ({ zone_id, title, description, start_date, end_date }) => {
-  const query = `
-    INSERT INTO activities (zone_id, title, description, start_date, end_date)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING activity_id, zone_id, title, description, start_date, end_date, created_at;
+// 🔹 Admin: Yeni etkinlik oluştur (Fotoğraf Destekli - Forum sistemi gibi)
+exports.createActivity = async ({ zone_id, title, description, start_date, end_date, photoUrl }) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Etkinliği kaydet
+    const activityQuery = `
+      INSERT INTO activities (zone_id, title, description, start_date, end_date)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING activity_id, zone_id, title, description, start_date, end_date, created_at
   `;
-  
-  const { rows } = await pool.query(query, [zone_id, title, description || null, start_date, end_date]);
-  return rows[0];
+    const activityRes = await client.query(activityQuery, [zone_id, title, description || null, start_date, end_date]);
+    const newActivity = activityRes.rows[0];
+
+    // Fotoğraf varsa kaydet
+    if (photoUrl && photoUrl.trim() !== '') {
+      await client.query(
+        `INSERT INTO activity_photos (activity_id, url) VALUES ($1, $2)`,
+        [newActivity.activity_id, photoUrl]
+      );
+    }
+
+    await client.query('COMMIT');
+    return newActivity;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
-// 🔹 Admin: Etkinlik güncelle
-exports.updateActivity = async ({ activityId, zone_id, title, description, start_date, end_date }) => {
-  const query = `
+// 🔹 Admin: Etkinlik güncelle (Fotoğraf Destekli - Forum sistemi gibi)
+exports.updateActivity = async ({ activityId, zone_id, title, description, start_date, end_date, photoUrl }) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Etkinliği güncelle
+    const activityQuery = `
     UPDATE activities
     SET zone_id = COALESCE($1, zone_id),
         title = COALESCE($2, title),
         description = COALESCE($3, description),
         start_date = COALESCE($4, start_date),
-        end_date = COALESCE($5, end_date)
-    WHERE activity_id = $6
-    RETURNING activity_id, zone_id, title, description, start_date, end_date, created_at;
+          end_date = COALESCE($5, end_date)
+      WHERE activity_id = $6
+      RETURNING activity_id, zone_id, title, description, start_date, end_date, created_at
   `;
+    const activityRes = await client.query(activityQuery, [zone_id, title, description, start_date, end_date, activityId]);
   
-  const { rows } = await pool.query(query, [zone_id, title, description, start_date, end_date, activityId]);
-  
-  if (rows.length === 0) {
+    if (activityRes.rows.length === 0) {
+      await client.query('ROLLBACK');
     throw new Error('Etkinlik bulunamadı');
   }
   
-  return rows[0];
+    // Mevcut fotoğrafları sil
+    await client.query('DELETE FROM activity_photos WHERE activity_id = $1', [activityId]);
+
+    // Yeni fotoğraf varsa ekle
+    if (photoUrl && photoUrl.trim() !== '') {
+      await client.query(
+        `INSERT INTO activity_photos (activity_id, url) VALUES ($1, $2)`,
+        [activityId, photoUrl]
+      );
+    }
+
+    await client.query('COMMIT');
+    return activityRes.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // 🔹 Admin: Etkinlik sil
@@ -132,7 +184,11 @@ exports.getUpcomingActivitiesByZone = async (zoneId) => {
       a.description,
       a.start_date,
       a.end_date,
-      lz.name AS zone_name
+      lz.name AS zone_name,
+      COALESCE(
+        (SELECT JSON_AGG(ph.url) FROM activity_photos ph WHERE ph.activity_id = a.activity_id),
+        '[]'::json
+      ) as photos
     FROM activities a
     JOIN lake_zones lz ON a.zone_id = lz.zone_id
     WHERE a.end_date > NOW() AND lz.zone_id = $1

@@ -22,3 +22,7 @@ const ImageLightbox = ({ isOpen, onClose, imageUrl }) => {
 
 export default ImageLightbox;
 
+
+
+
+

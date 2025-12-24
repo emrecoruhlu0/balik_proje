@@ -106,3 +106,7 @@ const EquipTab = ({
 
 export default EquipTab;
 
+
+
+
+

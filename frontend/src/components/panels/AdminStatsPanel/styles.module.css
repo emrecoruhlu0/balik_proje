@@ -1,21 +1,26 @@
 .scrollableList {
-  max-height: 300px;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-right: 8px;
+  min-height: 0;
+  flex: 1;
 }
 
 .tabTitle {
   font-size: 1rem;
   margin: 0 0 15px 0;
+  flex-shrink: 0;
 }
 
 .listContainer {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .emptyMessage {
@@ -155,4 +160,28 @@
   color: #ec4899;
   font-weight: bold;
 }
+
+/* Admin Stats Modal - Sabit boyut */
+:global(.adminStatsModal) {
+  width: 1000px !important;
+  height: 85vh !important;
+  min-width: 1000px !important;
+  max-width: 1000px !important;
+  min-height: 85vh !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+}
+
+/* Admin Stats TabContent - TabContainer ile aynı boyut */
+.adminStatsTabContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+
+
+
 

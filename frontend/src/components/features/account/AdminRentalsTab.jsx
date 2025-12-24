@@ -138,3 +138,7 @@ const AdminRentalsTab = ({ allRentals, loading, onRefresh }) => {
 
 export default AdminRentalsTab;
 
+
+
+
+

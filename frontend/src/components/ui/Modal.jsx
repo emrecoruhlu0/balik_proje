@@ -7,7 +7,9 @@ const Modal = ({
   title, 
   children, 
   maxWidth = '800px',
-  className = '' 
+  className = '',
+  fixedSize = false,
+  noScroll = false
 }) => {
   if (!isOpen) return null;
 
@@ -18,7 +20,7 @@ const Modal = ({
     >
       <div 
         className={`${styles.modalContent} ${className}`}
-        style={{ maxWidth }}
+        style={fixedSize ? {} : { maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.modalHeader}>
@@ -31,7 +33,7 @@ const Modal = ({
             ×
           </button>
         </div>
-        <div className={styles.modalBody}>
+        <div className={`${styles.modalBody} ${noScroll ? styles.modalBodyNoScroll : ''}`}>
           {children}
         </div>
       </div>
@@ -40,4 +42,8 @@ const Modal = ({
 };
 
 export default Modal;
+
+
+
+
 

@@ -18,7 +18,8 @@ const ActivityForm = ({ item, onSuccess, onClose }) => {
     title: '',
     description: '',
     start_date: '',
-    end_date: ''
+    end_date: '',
+    photoUrl: ''
   });
 
   useEffect(() => {
@@ -45,15 +46,33 @@ const ActivityForm = ({ item, onSuccess, onClose }) => {
     if (item) {
       const startDate = item.start_date ? new Date(item.start_date).toISOString().slice(0, 16) : '';
       const endDate = item.end_date ? new Date(item.end_date).toISOString().slice(0, 16) : '';
+      // Forum sistemindeki gibi photos array'inden ilk fotoğrafı al
+      const photoUrl = item.photos && item.photos.length > 0 ? item.photos[0] : '';
       setFormData({
         zone_id: item.zone_id || '',
         title: item.title || '',
         description: item.description || '',
         start_date: startDate,
-        end_date: endDate
+        end_date: endDate,
+        photoUrl: photoUrl
       });
     }
   }, [item]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Dosya boyutu çok büyük! Lütfen 5MB'dan küçük bir resim seçin.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, photoUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,7 +85,8 @@ const ActivityForm = ({ item, onSuccess, onClose }) => {
         title: formData.title,
         description: formData.description || null,
         start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString()
+        end_date: new Date(formData.end_date).toISOString(),
+        photoUrl: formData.photoUrl || null
       };
 
       if (item) {
@@ -141,6 +161,22 @@ const ActivityForm = ({ item, onSuccess, onClose }) => {
         required
       />
 
+      <div className={styles.fileUploadSection}>
+        <label className={styles.fileLabel}>Fotoğraf Yükle (Opsiyonel - Max 5MB)</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className={styles.fileInput}
+        />
+        {formData.photoUrl && (
+          <div className={styles.previewSection}>
+            <p className={styles.previewText}>Resim seçildi! (Önizleme)</p>
+            <img src={formData.photoUrl} alt="Önizleme" className={styles.previewImage} />
+          </div>
+        )}
+      </div>
+
       <div className={styles.formActions}>
         <Button type="button" variant="danger" onClick={onClose} disabled={loading}>
           İptal
@@ -154,4 +190,8 @@ const ActivityForm = ({ item, onSuccess, onClose }) => {
 };
 
 export default ActivityForm;
+
+
+
+
 

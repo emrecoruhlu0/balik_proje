@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { isPointInsidePolygon } from '../../utils/geometry';
 import { fetchZones, fetchHotspots, fetchActiveBoats, fetchAllZonesStats, fetchUpcomingActivitiesByZone, fetchZoneStats } from '../../api/api';
@@ -17,7 +17,50 @@ function MapBackgroundClick({ onDeselect }) {
   return null;
 }
 
-const GameMap = ({ onZoneSelect }) => {
+// Scroll zoom sensitivity reducer component
+function ScrollZoomControl() {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!map || !map.scrollWheelZoom) return;
+    
+    // Store original _onWheelScroll function
+    const originalOnWheelScroll = map.scrollWheelZoom._onWheelScroll;
+    
+    // Override with less sensitive version
+    map.scrollWheelZoom._onWheelScroll = function(e) {
+      // Increase the threshold - require more scrolling to zoom
+      // Default wheelPxPerZoomLevel is 60, we'll use 120 (half the sensitivity)
+      const wheelPxPerZoomLevel = 120;
+      
+      const delta = L.DomEvent.getWheelDelta(e);
+      const zoom = map.getZoom();
+      
+      // Only zoom if accumulated delta exceeds threshold
+      if (!this._delta) this._delta = 0;
+      this._delta += delta;
+      
+      if (Math.abs(this._delta) >= wheelPxPerZoomLevel) {
+        const zoomDelta = this._delta > 0 ? 1 : -1;
+        map.setZoom(zoom + zoomDelta);
+        this._delta = 0;
+      }
+      
+      L.DomEvent.stop(e);
+    };
+    
+    return () => {
+      // Restore original on unmount
+      if (originalOnWheelScroll) {
+        map.scrollWheelZoom._onWheelScroll = originalOnWheelScroll;
+      }
+    };
+  }, [map]);
+  
+  return null;
+}
+
+const GameMap = ({ onZoneSelect, onOpenForumTab }) => {
   const [lakeData, setLakeData] = useState(null);
   const [hotspots, setHotspots] = useState([]);
   const [fishPos, setFishPos] = useState([38.60, 42.90]);
@@ -181,6 +224,7 @@ const GameMap = ({ onZoneSelect }) => {
       try {
         const stats = await fetchZoneStats(zoneId);
 
+        const forumId = `forum-link-${zoneId}`;
         const statsContent = `
           <div style="min-width: 220px;">
             <strong style="font-size: 13px; color: #f59e0b;">${name}</strong><br/>
@@ -188,13 +232,49 @@ const GameMap = ({ onZoneSelect }) => {
             <hr style="margin: 8px 0; border-color: #333;">
             <div style="font-size:11px; line-height: 1.8;">
               <div><strong>📊 Aktivite:</strong> ${stats.activity_count || 0}</div>
-              <div><strong>💬 Forum:</strong> ${stats.post_count || 0}</div>
+              <div 
+                  id="${forumId}"
+                style="cursor: pointer; color: #3b82f6; padding: 2px 4px; border-radius: 3px; transition: background 0.2s; user-select: none;"
+                >
+                <strong>💬 Forum:</strong> ${stats.post_count || 0}
+              </div>
               ${stats.avg_activity_duration_hours ?
             `<div><strong>⏱️ Ort. Süre:</strong> ${parseFloat(stats.avg_activity_duration_hours).toFixed(1)}h</div>` : ''}
             </div>
           </div>
         `;
+        
         layer.setPopupContent(statsContent);
+        
+        // Add click event listener after popup content is set
+        setTimeout(() => {
+          const forumLink = document.getElementById(forumId);
+          if (forumLink && onOpenForumTab) {
+            const handleClick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Pass zone properties to open forum tab
+              onOpenForumTab(feature.properties);
+            };
+            
+            const handleMouseEnter = () => {
+              forumLink.style.background = 'rgba(59, 130, 246, 0.2)';
+            };
+            
+            const handleMouseLeave = () => {
+              forumLink.style.background = 'transparent';
+            };
+            
+            // Remove existing listeners if any, then add new ones
+            forumLink.removeEventListener('click', handleClick);
+            forumLink.removeEventListener('mouseenter', handleMouseEnter);
+            forumLink.removeEventListener('mouseleave', handleMouseLeave);
+            
+            forumLink.addEventListener('click', handleClick);
+            forumLink.addEventListener('mouseenter', handleMouseEnter);
+            forumLink.addEventListener('mouseleave', handleMouseLeave);
+          }
+        }, 150);
       } catch (err) {
         console.error('Bölge bilgileri yüklenemedi:', err);
         const errorContent = `
@@ -216,10 +296,12 @@ const GameMap = ({ onZoneSelect }) => {
       center={[38.60, 42.90]}
       zoom={9}
       style={{ height: '100%', width: '100%' }}
+      scrollWheelZoom={true}
     >
       <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
 
       <MapBackgroundClick onDeselect={() => onZoneSelect(null)} />
+      <ScrollZoomControl />
 
       {lakeData && (
         <GeoJSON
@@ -258,4 +340,8 @@ const GameMap = ({ onZoneSelect }) => {
 };
 
 export default GameMap;
+
+
+
+
 

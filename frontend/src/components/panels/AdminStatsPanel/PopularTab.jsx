@@ -52,3 +52,7 @@ const PopularTab = ({ popularZonesAnalysis, loading }) => {
 
 export default PopularTab;
 
+
+
+
+

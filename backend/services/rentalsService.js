@@ -767,24 +767,26 @@ exports.getMonthlyRevenue = async ({ year, month }) => {
     try {
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
 
-        // Tekne Gelirleri (rental_id dolu olanlar)
+        // Tekne Gelirleri (rental_id dolu olanlar) - start_at tarihine göre filtrele
         const boatRevenueQuery = `
             SELECT 
-                COUNT(*) as count, 
-                COALESCE(SUM(amount), 0) as total_revenue
-            FROM payments 
-            WHERE rental_id IS NOT NULL
-              AND DATE_TRUNC('month', paid_at) = DATE_TRUNC('month', $1::date)
+                COUNT(DISTINCT r.rental_id) as count, 
+                COALESCE(SUM(p.amount), 0) as total_revenue
+            FROM payments p
+            INNER JOIN rentals r ON p.rental_id = r.rental_id
+            WHERE r.rental_id IS NOT NULL
+              AND DATE_TRUNC('month', r.start_at) = DATE_TRUNC('month', $1::date)
         `;
 
-        // Ekipman Gelirleri (equipment_rental_id dolu olanlar)
+        // Ekipman Gelirleri (equipment_rental_id dolu olanlar) - start_at tarihine göre filtrele
         const equipmentRevenueQuery = `
             SELECT 
-                COUNT(*) as count, 
-                COALESCE(SUM(amount), 0) as total_revenue
-            FROM payments 
-            WHERE equipment_rental_id IS NOT NULL
-              AND DATE_TRUNC('month', paid_at) = DATE_TRUNC('month', $1::date)
+                COUNT(DISTINCT er.equipment_rental_id) as count, 
+                COALESCE(SUM(p.amount), 0) as total_revenue
+            FROM payments p
+            INNER JOIN equipment_rentals er ON p.equipment_rental_id = er.equipment_rental_id
+            WHERE er.equipment_rental_id IS NOT NULL
+              AND DATE_TRUNC('month', er.start_at) = DATE_TRUNC('month', $1::date)
         `;
 
         const [boatResult, equipmentResult] = await Promise.all([
@@ -818,13 +820,16 @@ exports.getMonthlyRevenue = async ({ year, month }) => {
 // Tekne ve Ekipman Gelir Analizi (Sorgu 5)
 exports.getRevenueAnalysis = async ({ year, month } = {}) => {
     // Tarih filtresi için WHERE koşulları
-    let dateFilter = '';
+    let boatDateFilter = '';
+    let equipmentDateFilter = '';
     const params = [];
     let paramIndex = 1;
     
     if (year && month) {
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-        dateFilter = `AND DATE_TRUNC('month', p.paid_at) = DATE_TRUNC('month', $${paramIndex}::date)`;
+        // Kiralama tarihine göre filtrele (start_at)
+        boatDateFilter = `AND DATE_TRUNC('month', r.start_at) = DATE_TRUNC('month', $${paramIndex}::date)`;
+        equipmentDateFilter = `AND DATE_TRUNC('month', er.start_at) = DATE_TRUNC('month', $${paramIndex}::date)`;
         params.push(startDate);
         paramIndex++;
     }
@@ -842,7 +847,7 @@ exports.getRevenueAnalysis = async ({ year, month } = {}) => {
         LEFT JOIN rentals r ON b.boat_id = r.boat_id
         LEFT JOIN payments p ON r.rental_id = p.rental_id
         WHERE (r.rental_id IS NULL OR p.payment_id IS NOT NULL)
-        ${dateFilter}
+        ${boatDateFilter}
         GROUP BY b.boat_id, b.name
         HAVING COUNT(r.rental_id) > 0
 
@@ -861,7 +866,7 @@ exports.getRevenueAnalysis = async ({ year, month } = {}) => {
         LEFT JOIN equipment_rentals er ON e.equipment_id = er.equipment_id
         LEFT JOIN payments p ON er.equipment_rental_id = p.equipment_rental_id
         WHERE (er.equipment_rental_id IS NULL OR p.payment_id IS NOT NULL)
-        ${dateFilter}
+        ${equipmentDateFilter}
         GROUP BY e.equipment_id, et.name, e.brand, e.model
         HAVING COUNT(er.equipment_rental_id) > 0
 
@@ -876,7 +881,7 @@ exports.getMonthlyTrendAnalysis = async () => {
     const query = `
         WITH monthly_revenue AS (
             SELECT 
-                DATE_TRUNC('month', p.paid_at) AS month,
+                DATE_TRUNC('month', r.start_at) AS month,
                 'Boat' AS rental_type,
                 COUNT(DISTINCT r.rental_id) AS rental_count,
                 SUM(p.amount) AS total_revenue,
@@ -887,12 +892,12 @@ exports.getMonthlyTrendAnalysis = async () => {
             WHERE 
                 p.paid_at IS NOT NULL
             GROUP BY 
-                DATE_TRUNC('month', p.paid_at)
+                DATE_TRUNC('month', r.start_at)
             
             UNION ALL
             
             SELECT 
-                DATE_TRUNC('month', p.paid_at) AS month,
+                DATE_TRUNC('month', er.start_at) AS month,
                 'Equipment' AS rental_type,
                 COUNT(DISTINCT er.equipment_rental_id) AS rental_count,
                 SUM(p.amount) AS total_revenue,
@@ -903,7 +908,7 @@ exports.getMonthlyTrendAnalysis = async () => {
             WHERE 
                 p.paid_at IS NOT NULL
             GROUP BY 
-                DATE_TRUNC('month', p.paid_at)
+                DATE_TRUNC('month', er.start_at)
         ),
         monthly_summary AS (
             SELECT 

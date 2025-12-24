@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from '../../ui/Card';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const SpendingTab = ({ allUsersStats }) => {
@@ -18,7 +19,7 @@ const SpendingTab = ({ allUsersStats }) => {
               Tekne: {stat.boat_rental_count || 0} | Ekipman: {stat.equipment_rental_count || 0}
             </div>
             <div className={styles.statTotal}>
-              Toplam: {parseFloat(stat.total_spent || 0).toFixed(2)} ₺
+              Toplam: {formatCurrency(stat.total_spent || 0)} ₺
             </div>
           </Card>
         ))}
@@ -28,4 +29,8 @@ const SpendingTab = ({ allUsersStats }) => {
 };
 
 export default SpendingTab;
+
+
+
+
 

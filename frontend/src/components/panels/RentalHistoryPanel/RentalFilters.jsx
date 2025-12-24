@@ -59,3 +59,7 @@ const RentalFilters = ({ filters, setFilters, onFilter, onClose, loading }) => {
 
 export default RentalFilters;
 
+
+
+
+

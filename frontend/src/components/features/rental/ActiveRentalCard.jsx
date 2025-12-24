@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import { formatCurrency } from '../../../utils/format';
 import styles from './styles.module.css';
 
 const ActiveRentalCard = ({ 
@@ -44,7 +45,7 @@ const ActiveRentalCard = ({
           </p>
         </div>
         <div className={styles.activeRentalCost}>
-          {currentCost.toFixed(2)} ₺
+          {formatCurrency(currentCost)} ₺
         </div>
       </div>
       {onReturn && (
@@ -61,4 +62,8 @@ const ActiveRentalCard = ({
 };
 
 export default ActiveRentalCard;
+
+
+
+
 

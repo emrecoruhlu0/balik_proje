@@ -84,3 +84,7 @@ const BoatTab = ({
 
 export default BoatTab;
 
+
+
+
+

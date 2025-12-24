@@ -122,3 +122,7 @@ const BoatForm = ({ item, onSuccess, onClose }) => {
 
 export default BoatForm;
 
+
+
+
+

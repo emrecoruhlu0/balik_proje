@@ -78,3 +78,7 @@ const EquipmentRentalList = ({
 
 export default EquipmentRentalList;
 
+
+
+
+

@@ -76,3 +76,7 @@ const RegisterForm = ({ onSuccess, onSwitchToLogin }) => {
 
 export default RegisterForm;
 
+
+
+
+
