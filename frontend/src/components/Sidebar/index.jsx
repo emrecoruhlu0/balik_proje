@@ -504,6 +504,7 @@ const Sidebar = ({ selectedZone, currentUser, onLoginSuccess, onLogout, onTabCha
             onLoginSuccess={handleLoginSuccess}
             onLogout={handleLogout}
             onRefreshRentals={loadAllRentals}
+            onRefreshAccountData={loadAccountData}
             calculateCurrentCost={calculateCurrentCost}
           />
         );

@@ -259,6 +259,18 @@
   flex-direction: column;
   gap: 10px;
   height: 100%;
+  overflow: hidden;
+}
+
+.accountTab .accountTabButtons,
+.accountTabButtons {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--bg-dark) !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 20px !important;
 }
 
 .accountTab .accountTabButtons button,

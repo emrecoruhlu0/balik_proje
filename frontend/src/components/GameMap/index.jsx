@@ -60,7 +60,7 @@ function ScrollZoomControl() {
   return null;
 }
 
-const GameMap = ({ onZoneSelect, onOpenForumTab }) => {
+const GameMap = ({ onZoneSelect, onOpenForumTab, onOpenInfoTab }) => {
   const [lakeData, setLakeData] = useState(null);
   const [hotspots, setHotspots] = useState([]);
   const [fishPos, setFishPos] = useState([38.60, 42.90]);
@@ -225,13 +225,19 @@ const GameMap = ({ onZoneSelect, onOpenForumTab }) => {
         const stats = await fetchZoneStats(zoneId);
 
         const forumId = `forum-link-${zoneId}`;
+        const activityId = `activity-link-${zoneId}`;
         const statsContent = `
           <div style="min-width: 220px;">
             <strong style="font-size: 13px; color: #f59e0b;">${name}</strong><br/>
             <span style="font-size:10px; color:#999;">Bölge ID: ${zoneId}</span>
             <hr style="margin: 8px 0; border-color: #333;">
             <div style="font-size:11px; line-height: 1.8;">
-              <div><strong>📊 Aktivite:</strong> ${stats.activity_count || 0}</div>
+              <div 
+                id="${activityId}"
+                style="cursor: pointer; color: #22c55e; padding: 2px 4px; border-radius: 3px; transition: background 0.2s; user-select: none;"
+              >
+                <strong>📊 Aktivite:</strong> ${stats.activity_count || 0}
+              </div>
               <div 
                   id="${forumId}"
                 style="cursor: pointer; color: #3b82f6; padding: 2px 4px; border-radius: 3px; transition: background 0.2s; user-select: none;"
@@ -246,33 +252,62 @@ const GameMap = ({ onZoneSelect, onOpenForumTab }) => {
         
         layer.setPopupContent(statsContent);
         
-        // Add click event listener after popup content is set
+        // Add click event listeners after popup content is set
         setTimeout(() => {
+          // Activity link handler
+          const activityLink = document.getElementById(activityId);
+          if (activityLink && onOpenInfoTab) {
+            const handleActivityClick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Pass zone properties to open info tab
+              onOpenInfoTab(feature.properties);
+            };
+            
+            const handleActivityMouseEnter = () => {
+              activityLink.style.background = 'rgba(34, 197, 94, 0.2)';
+            };
+            
+            const handleActivityMouseLeave = () => {
+              activityLink.style.background = 'transparent';
+            };
+            
+            // Remove existing listeners if any, then add new ones
+            activityLink.removeEventListener('click', handleActivityClick);
+            activityLink.removeEventListener('mouseenter', handleActivityMouseEnter);
+            activityLink.removeEventListener('mouseleave', handleActivityMouseLeave);
+            
+            activityLink.addEventListener('click', handleActivityClick);
+            activityLink.addEventListener('mouseenter', handleActivityMouseEnter);
+            activityLink.addEventListener('mouseleave', handleActivityMouseLeave);
+          }
+
+          // Forum link handler
           const forumLink = document.getElementById(forumId);
           if (forumLink && onOpenForumTab) {
-            const handleClick = (e) => {
+            const handleForumClick = (e) => {
               e.preventDefault();
               e.stopPropagation();
               // Pass zone properties to open forum tab
               onOpenForumTab(feature.properties);
             };
             
-            const handleMouseEnter = () => {
+            const handleForumMouseEnter = () => {
               forumLink.style.background = 'rgba(59, 130, 246, 0.2)';
             };
             
-            const handleMouseLeave = () => {
+            const handleForumMouseLeave = () => {
               forumLink.style.background = 'transparent';
             };
             
             // Remove existing listeners if any, then add new ones
-            forumLink.removeEventListener('click', handleClick);
-            forumLink.removeEventListener('mouseenter', handleMouseEnter);
-            forumLink.removeEventListener('mouseleave', handleMouseLeave);
+            forumLink.removeEventListener('click', handleForumClick);
+            forumLink.removeEventListener('mouseenter', handleForumMouseEnter);
+            forumLink.removeEventListener('mouseleave', handleForumMouseLeave);
             
-            forumLink.addEventListener('click', handleClick);
-            forumLink.addEventListener('mouseenter', handleMouseEnter);
-            forumLink.addEventListener('mouseleave', handleMouseLeave);
+            forumLink.addEventListener('click', handleForumClick);
+            forumLink.addEventListener('mouseenter', handleForumMouseEnter);
+            forumLink.addEventListener('mouseleave', handleForumMouseLeave);
           }
         }, 150);
       } catch (err) {

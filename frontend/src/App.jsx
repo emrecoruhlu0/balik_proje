@@ -65,6 +65,23 @@ function App() {
               }, 50);
             }
           }}
+          onOpenInfoTab={(zoneProps) => {
+            // Select the zone first, then open info tab
+            if (zoneProps && sidebarTabChangeRef.current) {
+              const zone = {
+                zone_id: zoneProps.zone_id || zoneProps.id,
+                id: zoneProps.zone_id || zoneProps.id,
+                name: zoneProps.name
+              };
+              setSelectedZone(zone);
+              // Use setTimeout to ensure zone is selected before opening info tab
+              setTimeout(() => {
+                if (sidebarTabChangeRef.current) {
+                  sidebarTabChangeRef.current('info');
+                }
+              }, 50);
+            }
+          }}
         />
         {selectedZone && (
           <div style={{

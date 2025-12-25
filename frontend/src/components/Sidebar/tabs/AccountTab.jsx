@@ -34,6 +34,7 @@ const AccountTab = ({
   onLoginSuccess,
   onLogout,
   onRefreshRentals,
+  onRefreshAccountData,
   calculateCurrentCost
 }) => {
   const [accountSubtab, setAccountSubtab] = useState(ACCOUNT_SUBTABS.LOGIN);
@@ -111,6 +112,7 @@ const AccountTab = ({
                 <RentalsTab
                   myActiveRentals={myActiveRentals}
                   calculateCurrentCost={calculateCurrentCost}
+                  onRefresh={onRefreshAccountData}
                 />
               )}
               {accountSubtab === ACCOUNT_SUBTABS.POSTS && (
